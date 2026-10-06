@@ -1,0 +1,13 @@
+庭院实时 3D · 材质来源
+以下实拍贴图与环境光来自 Poly Haven，使用 CC0 许可。
+https://polyhaven.com/license
+
+Chinese Garden (HDRI): https://polyhaven.com/a/chinese_garden
+Large Grey Tiles: https://polyhaven.com/a/large_grey_tiles
+White Plaster 02: https://polyhaven.com/a/white_plaster_02
+Wood Floor Deck: https://polyhaven.com/a/wood_floor_deck
+Leafy Grass: https://polyhaven.com/a/leafy_grass
+
+边界依据用户提供的总平面图，建筑、景观及灯光均为概念设计。
+
+Brick Wall 003 (facade shader adjusted to light grey): https://polyhaven.com/a/brick_wall_003
