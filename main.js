@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { siteData } from './site-data.js?v=20261006-axis';
-import { prepareMaterials, modernRoof, naturalPlanting, architecturalDetails } from './realism.js?v=20261006-axis';
-import { enclosedCourtyard } from './courtyard-style.js?v=20261006-axis';
-import { intimateGarden } from './reference-garden.js?v=20261006-axis';
-import { timberColumn, galleryCanopy, stoneCourtyardFrame } from './architecture-kit.js';
-import { mobileLayout, sceneInsets, setupMobileUI } from './mobile-ui.js?v=20261006-mobile';
+import { siteData } from './site-data.js?v=a3-cottage-west';
+import { prepareMaterials } from './materials.js?v=a3-cottage-west';
+import { mobileLayout, sceneInsets, setupMobileUI } from './mobile-ui.js?v=a3-cottage-west';
+
+import { createCottage } from './cottage.js?v=a3-cottage-west';
+import { createGarden } from './cottage-garden.js?v=a3-cottage-west';
 
 const loading = window.courtyardLoading;
 await loading.stage(1, '正在启动三维引擎', '程序已加载 · 正在准备显示设备');
@@ -14,7 +14,6 @@ const annotations = [];
 const dimensions = new THREE.Group();
 const existing = new THREE.Group();
 const roofGroup = new THREE.Group();
-const upperGroup = new THREE.Group();
 const lowerLabels = [];
 const v3 = (x,y,z) => new THREE.Vector3(x,y,z);
 const P = siteData.boundary.map(([x,z])=>[x-27.5,z]);
@@ -56,7 +55,8 @@ controls.target.set(0,0,13);
 controls.listenToKeyEvents(renderer.domElement);
 const hemi=new THREE.HemisphereLight('#eff4ff','#65745b',1.4);scene.add(hemi);
 const sun = new THREE.DirectionalLight('#fff2d9',3);
-sun.position.set(25,45,35);sun.castShadow=true;
+// Presentation daylight lights the west entrance and timber window surrounds.
+sun.position.set(-28,45,24);sun.castShadow=true;
 sun.shadow.mapSize.set(4096,4096);
 Object.assign(sun.shadow.camera,{left:-34,right:34,top:34,bottom:-34,near:1,far:150});
 sun.shadow.normalBias=.035;sun.shadow.bias=-.0002;sun.target.position.set(0,0,13);
@@ -76,7 +76,7 @@ try {await prepareMaterials(M,scene,renderer,{
 });} catch(error) {
   loading.fail('材质未能完整加载，请检查网络后点击“重新加载”。');throw error;
 }
-await loading.stage(18, '正在生成庭院', '正在构建主屋、围墙与三车停车区');
+await loading.stage(18, '正在生成庭院', '正在构建200㎡独栋住宅与三车停车区');
 const geometries=new Map();
 function box(w,h,d,x,y,z,material,parent=scene){
   const key=`${w},${h},${d}`;let geom=geometries.get(key);if(!geom){geom=new THREE.BoxGeometry(w,h,d);const p=geom.attributes.position,n=geom.attributes.normal,uv=geom.attributes.uv;for(let i=0;i<p.count;i++){if(Math.abs(n.getX(i))>.5)uv.setXY(i,p.getZ(i),p.getY(i));else if(Math.abs(n.getY(i))>.5)uv.setXY(i,p.getX(i),p.getZ(i));else uv.setXY(i,p.getX(i),p.getY(i));}geometries.set(key,geom);}
@@ -158,8 +158,7 @@ slab([[-20,northZ(-20)+.08],[-16,northZ(-16)+.08],[-16,3.2],[-20,3.2]],.035,M.pa
 box(9.8,.035,6,-17.25,.0625,6.2,M.paving);
 const parkingSurface=M.paving.clone();parkingSurface.color.set('#a3aaa5');
 box(8.4,.035,5.5,-16.55,.0625,11.95,parkingSurface);
-box(27.8,.055,1.6,-1.3,.08,4,M.path);
-box(1.6,.055,3.2,siteData.design.courtyardCenterX,.08,4.7,M.path);
+
 // A clear strip separates the main pedestrian route from the parking aisle.
 box(.24,.02,5.8,-12.15,.095,6.2,M.grassDeep);
 for(const x of [-20.75,-17.95,-15.15,-12.35])box(.075,.009,5.5,x,.089,11.95,M.white);
@@ -200,184 +199,67 @@ function car(x,z,color){
   box(.4,.12,.025,0,.54,-2.4,M.white,g);
 }
 parkingCenters.forEach((x,i)=>car(x,11.95,['#eeeae2','#667b82','#b2b6b3'][i]));
-for(const x of [-11.65,-8.2,-4.75,-2.2]){box(.16,2.48,.16,x,1.28,3.2,M.timber);box(.16,2.48,.16,x,1.28,4.8,M.timber);}
-box(10.9,.20,2,-6.475,2.54,4,M.timber);
-box(10.6,.045,1.75,-6.475,2.425,4,M.soffit);
-for(let x=-11.7;x<-1.15;x+=.3)box(.065,.06,1.75,x,2.385,4,M.soffit);
 
-// Exterior wall faces and ground slab define a 20 x 10m, 200m² footprint.
-const hx=siteData.design.houseCenter[0]-27.5,hz=10,h=3.3;
-const houseWidth=siteData.design.houseWidth,houseDepth=siteData.design.houseDepth,courtX=siteData.design.courtyardCenterX;
-const houseLeft=hx-houseWidth/2,houseRight=hx+houseWidth/2,stairX=courtX-1.9;
-if(Math.abs(hx-courtX)>1e-6)throw new Error('Main house and courtyard must share one centre axis');
-box(houseWidth,.18,houseDepth,hx,.13,hz,M.base);
-box(houseWidth-.48,.08,houseDepth-.48,hx,.25,hz,M.path);
-const groundWalls = new THREE.Group();scene.add(groundWalls,upperGroup,roofGroup);
-function openingWall(total,cy,wallZ,openings,parent,height=3.12){
-  let start=-total/2;
-  for(const o of [...openings].sort((a,b)=>a.x-b.x)){
-    const left=o.x-o.w/2,right=o.x+o.w/2;
-    if(left>start)box(left-start,height,.24,(left+start)/2,cy,wallZ,M.facade,parent);
-    const bottom=cy-height/2;
-    if(o.sill>0)box(o.w,o.sill,.24,o.x,bottom+o.sill/2,wallZ,M.facade,parent);
-    const topHeight=height-o.sill-o.height;
-    if(topHeight>0)box(o.w,topHeight,.24,o.x,bottom+o.sill+o.height+topHeight/2,wallZ,M.facade,parent);
-    if(o.door){
-      box(o.w-.1,o.height,.09,o.x,bottom+o.sill+o.height/2,wallZ,M.wood,parent);
-      box(.035,.26,.055,o.x+o.w*.29,bottom+1.05,wallZ-.08,M.dark,parent);
-    }else if(!o.passage){
-      box(o.w-.08,o.height,.05,o.x,bottom+o.sill+o.height/2,wallZ,M.glass,parent);
-      for(const xx of [left+.025,right-.025,o.x])box(.07,o.height+.1,.13,xx,bottom+o.sill+o.height/2,wallZ,M.dark,parent);
-      for(const yy of [bottom+o.sill,bottom+o.sill+o.height])box(o.w+.08,.065,.13,o.x,yy,wallZ,M.dark,parent);
-      box(o.w+.08,.045,.25,o.x,bottom+o.sill+o.height+.075,wallZ,M.dark,parent);
-    }
-    // Timber surrounds sit on both wall faces, including rotated side walls.
-    for(const face of [-1,1]){
-      for(const xx of [left-.035,right+.035])box(.105,o.height+.14,.055,xx,bottom+o.sill+o.height/2,wallZ+face*.1475,M.timber,parent);
-      box(o.w+.18,.13,.065,o.x,bottom+o.sill+o.height+.02,wallZ+face*.1525,M.timber,parent);
-    }
-    if(o.sill>.3)box(o.w+.24,.055,.39,o.x,bottom+o.sill-.035,wallZ,M.cutStone,parent);
-    start=right;
-  }
-  if(start<total/2)box(total/2-start,height,.24,(total/2+start)/2,cy,wallZ,M.facade,parent);
-}
-// World-coordinate openings share one footprint datum; walls sit inside the slab edge.
-function houseFacade(parent,cy,z,openings){
-  const face=new THREE.Group();face.position.x=hx;parent.add(face);
-  openingWall(houseWidth,cy,z,openings.map(o=>({...o,x:o.x-hx})),face);
-}
-const northWindows=[-8.5,-6.2,-3.65,3.65,6.2,8.5].map(dx=>({x:courtX+dx,w:1.5,sill:1.05,height:1.5}));
-houseFacade(groundWalls,1.88,5.12,[{x:courtX,w:1.5,sill:0,height:2.4,door:true},...northWindows]);
-houseFacade(groundWalls,1.88,14.88,[
-  {x:courtX,w:4.8,sill:.02,height:3.02},
-  ...[-1,1].flatMap(side=>[
-    {x:courtX+side*3.65,w:1.3,sill:.55,height:2.15},
-    {x:courtX+side*6.75,w:1.3,sill:0,height:2.5,passage:true},
-    {x:courtX+side*8.5,w:1.3,sill:.55,height:2.15}
-  ])
-]);
-function houseSides(parent,cy){
-  for(const x of [houseLeft+.12,houseRight-.12]){
-    const g=new THREE.Group();g.position.set(x,0,10);g.rotation.y=Math.PI/2;
-    openingWall(9.52,cy,0,[{x:2.1,w:1.8,sill:1,height:1.6},{x:-2.2,w:1.8,sill:1,height:1.6}],g);parent.add(g);
-  }
-}
-houseSides(groundWalls,1.88);
-// Keep the living hall's 5.6 x 4.2m void; added floor area becomes usable rooms.
-// A 1.3 x 4.66m stairwell clears the real treads; the landing remains at the south end.
-for(const [a,b]of [[houseLeft,stairX-.65],[stairX+.65,houseRight]])box(b-a,.2,5.8,(a+b)/2,3.5,7.9,M.trim,upperGroup);
-box(1.3,.2,.2,stairX,3.5,5.1,M.trim,upperGroup);
-box(1.3,.2,.94,stairX,3.5,10.33,M.trim,upperGroup);
-for(const [a,b]of [[houseLeft,courtX-2.8],[courtX+2.8,houseRight]])box(b-a,.2,4.2,(a+b)/2,3.5,12.9,M.trim,upperGroup);
-houseFacade(upperGroup,5.18,5.12,[-8.5,-6.2,-3.65,0,3.65,6.2,8.5].map(dx=>({x:courtX+dx,w:1.5,sill:.8,height:1.85})));
-houseFacade(upperGroup,5.18,14.88,[
-  ...[-8.5,-6.75,-3.65,3.65,6.75,8.5].map(dx=>({x:courtX+dx,w:1.4,sill:.55,height:2.15})),
-  {x:courtX,w:4.8,sill:0,height:3.12}
-]);
-houseSides(upperGroup,5.18);
-// Veranda spans only the inner courtyard, between the two relocated wings.
-box(9.5,.1,2.5,courtX,.16,16.25,M.paving);
-for(const x of [courtX-2.68,courtX+2.68])timberColumn(x,17.22,M,box,scene);
-const porch=new THREE.Group();scene.add(porch);
-for(const x of [courtX-3.6,courtX+3.6])galleryCanopy(2.4,2.35,x,16.375,M,box,porch);
-// Slim benches leave the hall approach and covered galleries open.
-for(const x of [courtX-3.65,courtX+3.65]){
-  box(1.25,.16,.5,x,.56,15.75,M.fabric);
-  box(1.25,.38,.10,x,.80,15.52,M.timber);
-  for(const dx of [-.47,.47])box(.065,.3,.36,x+dx,.33,15.75,M.timber);
-}
-const houseLabel=label('主屋占地 200㎡ · 20 × 10m（拟）',[hx,5.6,10]);
-label('遮阳廊下',[courtX,3.25,17.5]);
-
-// Illustrative zoning, furniture at real scale; partitions remain a concept layout.
-const interior=new THREE.Group();scene.add(interior);
-function partitionX(x,z,d){box(.13,2.6,d,x,1.62,z,M.trim,interior);}
-function partitionZ(x,z,w){box(w,2.6,.13,x,1.62,z,M.trim,interior);}
-for(const x of [-4.15,1.65])partitionX(x,12.65,4.3);
-// Leave a continuous passage in front of both doors into the side wings.
-for(const x of [-8.15,5.65])partitionX(x,12,3);
-for(const [x,w]of [[-8.1,5.8],[4.2,2.9],[7.68,1.66]])partitionZ(x,10.5,w);
-partitionX(-4.15,6.75,3);partitionX(2.7,7.4,4.4);partitionX(5.8,7.4,4.4);
-partitionZ(3.25,9.6,1.1);partitionZ(5.3,9.6,1);
-function bed(x,z){
-  box(1.85,.4,2.15,x,.52,z,M.wood,interior);box(1.8,.2,2.1,x,.82,z,M.fabric,interior);
-  for(const dx of [-.45,.4])box(.64,.13,.43,x+dx,.98,z-.75,M.white,interior);
-  box(1.92,.85,.13,x,.85,z-1.1,M.timber,interior);
-  for(const dx of [-1.25,1.25])box(.5,.5,.5,x+dx,.56,z-.65,M.wood,interior);
-}
-bed(3.6,12.5);bed(-6.1,12.5);
-// The tall living room aligns with the new courtyard axis at x=-1.25m.
-box(3.1,.20,1,courtX,.60,11.7,M.fabric,interior);
-box(3.1,.57,.19,courtX,.87,11.2,M.fabric,interior);
-for(const dx of [-1.47,1.47])box(.16,.4,1,courtX+dx,.82,11.7,M.fabric,interior);
-for(const dx of [-1,0,1])box(.94,.12,.8,courtX+dx,.76,11.8,M.fabric,interior);
-box(1.55,.085,.7,courtX,.71,13.2,M.path,interior);
-for(const dx of [-.6,.6])box(.06,.38,.5,courtX+dx,.49,13.2,M.dark,interior);
-cylinder(.10,.13,.24,courtX,.89,13.2,M.clay,interior,24);
-box(2,.1,.95,-6.5,1.01,7.6,M.wood,interior);
-for(const x of [-7.1,-5.9])for(const z of [6.7,8.5])box(.45,.54,.45,x,.59,z,M.fabric,interior);
-box(.65,.92,3,houseLeft+.57,.78,7.1,M.woodLight,interior);
-box(1.9,.08,.7,7.2,1.02,12.6,M.wood,interior);box(.6,.5,.6,7.2,.6,13.5,M.fabric,interior);
-box(2.3,.5,.95,7.2,.59,7.5,M.fabric,interior);box(2.3,.55,.15,7.2,.89,7.05,M.fabric,interior);
-box(1.45,.38,.7,7.2,.5,9,M.wood,interior);
-const stairs=new THREE.Group();interior.add(stairs);
-for(let i=0;i<19;i++)box(1,(3.3/19)*(i+1),.24,stairX,.32+(3.3/19)*(i+1)/2,5.4+i*.24,M.base,stairs);
-const upperStairs=stairs.clone(true);upperStairs.position.y=3.3;scene.add(upperStairs);
-lowerLabels.push(label('老人房',[3.6,.6,12.8],'floor','floor-label'),label('客卧',[-6.1,.6,12.8],'floor','floor-label'),label('客厅',[courtX,.6,12.2],'floor','floor-label'),label('厨房 / 餐厅',[-6.5,.6,7.4],'floor','floor-label'),label('卫生间',[4.2,.6,7.5],'floor','floor-label'),label('书房',[7.2,.6,12.8],'floor','floor-label'),label('家庭厅',[7.2,.6,8.2],'floor','floor-label'),label('门厅',[courtX,.6,6.1],'floor','floor-label'));
-
-// Courtyard, lawns and paths stay within the recovered property shape.
-box(9.5,.04,6.2,courtX,.095,20.5,M.paving);
-stoneCourtyardFrame(M,box,scene,courtX);
-label('开阔活动庭院',[courtX,.4,20.5]);
-// Low vegetation beds and a small utility corner to the west.
-for(let i=0;i<3;i++){
-  const x=-15+i*1.4,z=20.1;
-  box(1.05,.12,3.8,x,.13,z,M.soil);
-  for(const dx of [-.56,.56])box(.08,.17,4,x+dx,.15,z,M.wood);
-  for(let j=0;j<7;j++)for(const dx of [-.26,.25]){const g=new THREE.Mesh(new THREE.SphereGeometry(.17,6,4),j%2?M.leaf:M.leafLight);g.position.set(x+dx,.32,z-1.5+j*.48);g.scale.y=.55;scene.add(g);}
-}
-box(2.7,.16,2.1,-17.1,.15,18.3,M.path);box(1.65,.8,.65,-17.1,.61,17.9,M.base);
-box(1.68,.09,.7,-17.1,1.05,17.9,M.path);box(.65,.03,.45,-17.3,1.1,17.88,M.dark);
-label('菜园 / 家务区',[-13,.7,21.5]);
-await loading.stage(19, '正在布置园林', '正在生成屋顶、树木、水庭与廊下细节');
-modernRoof(roofGroup,M,box);
-const landscape=intimateGarden(scene,M,{box,cylinder,inSite});
-naturalPlanting(scene,M,inSite,landscape.excludesGrass);
-const lighting=architecturalDetails({scene,M,roofGroup,upperGroup,groundWalls,box,cylinder});
-const courtyard=enclosedCourtyard({scene,M,box,cylinder,openingWall,upperGroup,landscape});
-await loading.stage(20, '正在准备观景视角', '庭院已生成 · 正在设置光线、尺寸与交互');
-const thirdGroup=upperGroup.clone(true);thirdGroup.position.y=3.3;box(5.6,.2,4.2,courtX,3.5,12.9,M.trim,thirdGroup);scene.add(thirdGroup);
-const pendants=new THREE.Group();scene.add(pendants);
-for(const [x,y,r]of [[-.6,2.7,.45],[.5,2.45,.6]]){const ring=new THREE.Mesh(new THREE.TorusGeometry(r,.018,8,48),lighting.amber);ring.rotation.x=Math.PI/2;ring.position.set(x+courtX,y,12.7);pendants.add(ring);}
-const pendantWires=[-.6,.5].map(x=>cylinder(.008,.008,1,x+courtX,3,12.7,M.dark,scene,5));
-label('东侧 · 竹影水庭',[15.3,.6,13.5]);
-label('西侧 · 树下茶席',[-12.9,.8,24.8]);
-let floorCount=2;
+// Scheme A: one west-facing 200m² cottage. No detached side rooms.
+const house=siteData.design.house;
+const residence=createCottage({scene,M,box,cylinder,...house});
+const housePoint=(x,z)=>[house.x+Math.cos(house.rotation)*x+Math.sin(house.rotation)*z,house.z-Math.sin(house.rotation)*x+Math.cos(house.rotation)*z];
+const houseLabel=label('主屋 · 朝西 · 占地200㎡',[house.x,8.5,house.z]);
+// Entry walks are level at 0.085m; the recessed porch is at 0.18m.
+box(2.05,.065,15.2,-2.775,.0525,11.4,M.path);
+box(1.5,.065,15.55,-10.85,.0525,11.025,M.path);
+box(7.8,.065,1.6,-7.7,.0525,11.3,M.path);
+slab([[-15.6,northZ(-15.6)+.14],[-10.1,northZ(-10.1)+.2],[-10.1,3.4],[-15.6,3.4]],.04,M.path,.045);
+// A continuous south path links the front terrace to the garden's 2m central walk.
+box(8.75,.065,1.6,.575,.0525,20.1,M.path);
+box(2,.065,9.9,2.8,.0525,24.05,M.path);
+box(1.5,.065,1.1,-3.0,.0525,19.35,M.path);
+const entry=new THREE.Group();entry.position.set(house.x,0,house.z);entry.rotation.y=house.rotation;scene.add(entry);
+const rampGeometry=new THREE.BoxGeometry(2.8,.065,1.2);
+const rp=rampGeometry.attributes.position;
+for(let i=0;i<rp.count;i++)rp.setY(i,rp.getY(i)+.095*(.6-rp.getZ(i))/1.2);
+rampGeometry.computeVertexNormals();
+const ramp=new THREE.Mesh(rampGeometry,M.path);ramp.position.set(0,.0525,6.85);ramp.receiveShadow=true;entry.add(ramp);
+lowerLabels.push(label('一楼空间示意',[house.x,.45,house.z],'floor','floor-label'));
+const front=housePoint(0,6.35),west=housePoint(0,8.1);
+line([[front[0],.22,front[1]],[west[0],.22,west[1]]],'#9f7743',dimensions);
+line([[west[0]+.35,.22,west[1]-.25],[west[0],.22,west[1]],[west[0]+.35,.22,west[1]+.25]],'#9f7743',dimensions);
+label('正门 / 露台朝西',[west[0],.4,west[1]-1.8],'dimension','design');
+label('西向入户花园',[-6.8,.4,16]);
+await loading.stage(19,'正在布置自然花园','正在生成灰瓦坡顶、木色窗框、露台与花境');
+const landscape=createGarden({scene,M,box,cylinder,inSite});
+// Rain is an optional atmosphere; its drops are kept within the property.
+const rainPoints=[];
+for(let i=0;i<950;i++){const x=Math.random()*55-27.5,z=Math.random()*35;if(inSite(x,z))rainPoints.push(x,Math.random()*17,z);}
+const rainGeometry=new THREE.BufferGeometry();rainGeometry.setAttribute('position',new THREE.Float32BufferAttribute(rainPoints,3));
+const rainCloud=new THREE.Points(rainGeometry,new THREE.PointsMaterial({color:'#ccdce2',size:.033,transparent:true,opacity:.6,depthWrite:false}));
+rainCloud.visible=false;scene.add(rainCloud);
+let floorCount=2,currentLight='day';
 function updateBuilding(){
   const exterior=document.getElementById('roof').checked;
-  roofGroup.visible=exterior;upperGroup.visible=exterior&&floorCount>=2;thirdGroup.visible=exterior&&floorCount>=3;
-  courtyard.wingRoofs.visible=exterior;courtyard.galleryRoofs.visible=exterior;porch.visible=exterior;
-  roofGroup.position.y=(floorCount-2)*3.3;stairs.visible=floorCount>1;upperStairs.visible=exterior&&floorCount>=3;
-  const pendantOffset=floorCount>1?1.8:0;pendants.position.y=pendantOffset;
-  pendantWires.forEach((wire,i)=>{const bottom=[2.7,2.45][i]+pendantOffset,top=floorCount>1?6.67:3.34;wire.scale.y=top-bottom;wire.position.y=(top+bottom)/2;});
-  houseLabel.el.textContent=['','单层主屋','两层主屋','三层主屋'][floorCount]+' · 占地200㎡ · 20 × 10m（拟）';
-  houseLabel.position.y=4.5+(floorCount-1)*3.3;
-  document.getElementById('floor-area').textContent='占地200㎡ · 主屋建面约 '+([0,200,376.5,576.5][floorCount])+'㎡ ＋ 厢房64㎡';
+  roofGroup.visible=exterior;
+  residence.setFloors(exterior?floorCount:1,exterior);
+  residence.setLight(currentLight==='dusk',currentLight==='rain');
+  houseLabel.position.y=2+floorCount*3.3;
+  houseLabel.el.textContent='朝西独栋 · '+floorCount+'层 · 占地200㎡';
+  document.getElementById('floor-area').textContent='占地200㎡ · 楼层面积约'+residence.floorAreas[floorCount]+'㎡'+(floorCount>1?' · 露台'+residence.terraceArea+'㎡':'');
   document.querySelectorAll('[data-floors]').forEach(b=>{const on=Number(b.dataset.floors)===floorCount;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
   document.documentElement.dataset.floors=String(floorCount);
 }
-document.querySelectorAll('[data-floors]').forEach(b=>b.addEventListener('click',()=>{floorCount=Number(b.dataset.floors);updateBuilding();}));
 function setLight(mode){
-  const dusk=mode==='dusk',rain=mode==='rain';hemi.intensity=dusk?.55:rain?1.2:1.4;sun.intensity=dusk?.32:rain?.65:3;
-  sun.color.set(dusk?'#a9bbd7':'#fff2d9');scene.environmentIntensity=dusk?.35:1.1;
-  scene.background.set(dusk?'#465b72':rain?'#b7c6c9':'#cbdbe0');scene.fog.color.copy(scene.background);scene.fog.near=rain?28:75;scene.fog.far=rain?110:170;renderer.toneMappingExposure=dusk?1.1:1.05;
-  lighting.amber.emissiveIntensity=dusk||rain?2.7:.6;lighting.lamps.forEach(l=>l.intensity=dusk?18:rain?8:0);courtyard.weather(rain);landscape.setLight(dusk,rain);
-  M.glass.emissiveIntensity=dusk?.12:0;landscape.water.material.uniforms.sunColor.value.set(dusk?'#61758a':'#ede6d8');
+  currentLight=mode;const dusk=mode==='dusk',rain=mode==='rain';
+  hemi.intensity=dusk?.65:rain?1.2:1.4;sun.intensity=dusk?.32:rain?.65:3;
+  sun.color.set(dusk?'#a9bbd7':'#fff2d9');scene.environmentIntensity=dusk?.4:1.1;
+  scene.background.set(dusk?'#43566c':rain?'#b7c6c9':'#cbdbe0');scene.fog.color.copy(scene.background);
+  scene.fog.near=rain?40:120;scene.fog.far=rain?150:260;renderer.toneMappingExposure=dusk?1.12:1.05;
+  residence.setLight(dusk,rain);landscape.setLight(dusk,rain);rainCloud.visible=rain;
   document.querySelectorAll('[data-light]').forEach(b=>{const on=b.dataset.light===mode;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on));});
   document.documentElement.dataset.lighting=mode;
 }
+document.querySelectorAll('[data-floors]').forEach(b=>b.addEventListener('click',()=>{floorCount=Number(b.dataset.floors);updateBuilding();}));
 document.querySelectorAll('[data-light]').forEach(b=>b.addEventListener('click',()=>setLight(b.dataset.light)));
 updateBuilding();setLight('day');
+await loading.stage(20,'正在准备花园住宅观景视角','正在设置光线、尺寸标注与手机交互');
 
 // Measured vectors and source annotations are deliberately distinct.
 scene.add(dimensions,existing);existing.visible=false;dimensions.visible=document.getElementById('dimensions').checked;
@@ -400,8 +282,8 @@ dimension([13.90376,0],[27.5,0],'13.60m · 投影',10.2);
 dimension([-20.75,9.2],[-17.95,9.2],'2.80m · 车位',.5,'design');
 dimension([-12.35,9.2],[-12.35,14.7],'5.50m · 车位',.5,'design');
 dimension([-22.15,3.2],[-22.15,9.2],'6.00m · 倒车通道',-.65,'design');
-dimension([houseLeft,5],[houseRight,5],'20.00m · 主屋占地200㎡',1.8,'design');
-dimension([houseRight,5],[houseRight,15],'10.00m · 拟建',1.2,'design');
+dimension(housePoint(-8,6.25),housePoint(8,6.25),'16.00m · 西向面宽',1.0,'design');
+dimension(housePoint(-8,-6.25),housePoint(-8,6.25),'12.50m · 占地200㎡',1.1,'design');
 line([[30,.04,6],[30,.04,-1]],'#5b796c',dimensions);line([[29.5,.04,0],[30,.04,-1],[30.5,.04,0]],'#5b796c',dimensions);label('北 N',[30,.2,-2],'dimension');
 line([[-27,.04,26],[-22,.04,26]],'#5b796c',dimensions);
 for(const x of [-27,-22])line([[x,.04,25.7],[x,.04,26.3]],'#5b796c',dimensions);
@@ -410,23 +292,23 @@ if(siteData.existingBuilding){
   const pts=siteData.existingBuilding.corners.map(([x,z])=>[x-27.5,.3,z]);line([...pts,pts[0]],'#b17f40',existing,true);
   const item=label('原建筑 · 图注120㎡',[siteData.existingBuilding.center[0]-27.5,.45,siteData.existingBuilding.center[1]],'existing');item.enabled=false;
 }
-document.getElementById('dimension-source').innerHTML=`<p><b>图纸基准</b><br>由原 PDF 矢量边界提取，按北侧东西总投影 55m 定标。模型面积约 1130.01㎡；图注 1130㎡。北边保留原有折点。内部30.170m、16.413m和12.658m也已交叉核对。</p><p><b>待复核的一条边</b><br>东南斜边图注 20.37m，矢量按比例约 20.69m。本模型保留原图轮廓，未强行改形。其余图注与矢量线长存在毫米至厘米级差异。</p><p><b>原建筑</b><br>轮廓按原图位置恢复。图注11×11.86m与文字120㎡存在差异，图示尺寸乘积约130.46㎡。</p><p><b>新建设计假设</b><br>主屋 20×10m，占地200㎡（按外墙外边线，不含廊檐），可切换1／2／3层；层高3.3m，低坡瓦屋脊分别约4.8／8.1／11.4m；二层方案中客厅上方设约23.5㎡挑空，主屋示意建面约376.5㎡，三层约576.5㎡。切换层数不改变主屋占地及地界。另设左右单层厢房各4×8m，合计64㎡，沿主屋南面衔接，主屋、门厅、主屋屋脊和两侧厢房以同一中轴对齐，中轴位于场景x=-1.25m；最紧的右厢房檐角距图示地界约1.65m，仅为几何余量，实际退界另核。围墙含压顶总高2.00m，门柱含压顶总高2.25m，门扇顶部1.95m；均为方案高度。车门净宽4m，人行门净宽1.2m。西北侧3个独立并排车位，每位2.8×5.5m，北侧倒车通道深6m、宽9.8m，停车区调整至靠入口，车位东缘距主屋西墙约1.10m；菜园与家务台位于西侧。三车均直接面对同一通道，不作串联停车。车型暂以4.75×1.85m乘用车示意，具体车型转弯轨迹尚未校核。位置、尺寸均可调整，非批准方案。</p><p><b>原图未提供</b><br>道路宽度暂示意5.5m；地面按平地展示。现场高差、邻房及退界须补充实测。围墙、树木、水景、装修及一楼隔间均为概念。场景只展示原图地块及临街道路，未模拟周边土地与树林；日光与傍晚不代表实际日照分析。建筑细部采用深木色廊柱、木条檐底、灰石柱脚与暗藏暖光，采用简洁直线收边。侧廊柱脚宽0.40m，计入突出窗台后的图示最窄净宽约1.40m。园林采用东侧水庭、西侧茶席的非对称布局；两侧廊柱之间约5.8m保持开阔，侧院连续步道连接休憩区。水景、植物及家具均为拟建设计，植物品种待结合现场日照选定。</p>`;
+document.getElementById('dimension-source').innerHTML=`<p><b>图纸基准</b><br>地界沿用原 PDF 矢量轮廓，以北侧东西总投影55m定标；模型面积约1130.01㎡，原图标注1130㎡。东南斜边图注20.37m，等比矢量约20.69m，此处保留原图轮廓。</p><p><b>A方案 · 朝西花园住宅</b><br>原左右厢房移除，改为一栋参考图风格的住宅。正门、门廊及主要露台统一朝西；外包络面宽16m、进深12.5m，占地200㎡，含内凹门廊。默认两层：首层约200㎡，二层实体约153㎡，室外露台47㎡，两层楼层面积合计约353㎡。三层版本增设约153㎡实体层，合计约506㎡；一层版本约200㎡。面积为模型几何粗算，门廊、露台及正式建面计算待后续设计复核。层高3.3m，浅色抹灰、木色门窗、灰瓦交叉坡顶、黑色栏杆、入口拱券为外观概念。</p><p><b>通行与园林</b><br>保留北侧4m车门及1.2m人行门、西北侧三个2.8×5.5m并列车位、北侧6m深倒车通道。西侧入户花园与连续步道连接主门廊、浅镜池和茶座；门前用1.2m长缓坡处理约9.5cm高差。围墙含压顶总高2m。车型暂按4.75×1.85m示意，具体转弯轨迹未校核。</p><p><b>尺寸说明</b><br>地块边界来自原图；道路宽5.5m、建筑、树木、景观、室内分区及高差为拟建设计。主屋位置和形态因朝向重新安排；屋檐地界余量只是几何检查，不代表审批退界。原建筑按拆除后重新布局，轮廓可单独显示。模型为概念交流使用，非施工图。</p>`;
 
 let cameraTween=null,gateOpen=false,gateProgress=0,touring=false,tourTime=0;
 let activeView='garden',layoutScale=1,hasView=false;
 let safeScene={top:95,bottom:110};
 function stopTour(){touring=false;document.getElementById('tour-toggle').textContent='自动漫游';document.getElementById('tour-toggle').setAttribute('aria-pressed','false');}
 const presets={
-  overview:{pos:[-47,63,68],target:[0,0,13],caption:'鼠标左键拖动旋转 · 滚轮缩放 · 右键平移'},
-  parking:{pos:[-29,25,26],target:[-15,0,10],caption:'3个独立车位 · 每位2.8×5.5m · 倒车通道6m'},
-  gate:{pos:[-30,9,-21],target:[-10,1.7,8],caption:'北侧入口 · 车门与独立人行门'},
-  garden:{pos:[courtX,23,44],target:[courtX,2.4,14.5],caption:'主屋、门厅与两侧厢房同轴对齐 · 东水庭 · 西茶席'},
-  detail:{pos:[-1.25,2.8,26.8],target:[-1.2,3.05,15.5],caption:'深木廊柱 · 木条檐底 · 灰石柱脚与平整铺地'},
-  water:{pos:[18.5,5.1,20],target:[14.6,.4,13.2],caption:'竹影水庭 · 小水面、景石与白花地被'},
-  tea:{pos:[-7,4.8,29],target:[-12.9,.6,24.8],caption:'树下茶席 · 四人围坐，步道通往主庭院'},
-  top:{pos:[0,86,13.1],target:[0,0,13],caption:'北在上，东在右 · 按米制比例查看用地'}
+ overview:{pos:[-46,54,-29],target:[0,1,13],caption:'A方案 · 朝西独栋200㎡ · 原图1130㎡地块'},
+ parking:{pos:[-32,23,27],target:[-16.8,0,10],caption:'三车停车 · 每位2.8×5.5m · 倒车通道6m'},
+ gate:{pos:[-30,10,-20],target:[-12,2,9],caption:'北侧入口 · 独立人行门连接西向住宅'},
+ garden:{pos:[-31,18,32],target:[1,3,12],caption:'朝西独栋 · 灰瓦坡顶 · 木色门窗 · 二层露台'},
+ detail:{pos:[-22,5.6,12.5],target:[-1.2,4.2,11.3],caption:'西立面 · 拱券门廊 · 木色窗框与黑色露台栏杆'},
+ water:{pos:[-1,6,29],target:[-7.7,.4,22.5],caption:'浅镜池 · 自然花境 · 平整步道'},
+ tea:{pos:[-6,5.2,29],target:[-13,.7,23.7],caption:'树下茶座 · 家人共享的花园'},
+ top:{pos:[0,86,13.1],target:[0,0,13],caption:'北在上，西在左 · 主屋200㎡ · 两侧小房已移除'}
 };
-const mobileFrames={overview:[60,42],parking:[17,14],gate:[15,12],garden:[28,22],detail:[7,6],water:[8,7],tea:[8,7],top:[60,40]};
+const mobileFrames={overview:[60,45],parking:[17,16],gate:[20,18],garden:[34,25],detail:[19,13],water:[11,9],tea:[11,9],top:[60,42]};
 function framingScale(name){
   if(!mobileLayout.matches)return 1;
   const cfg=presets[name],distance=v3(...cfg.pos).distanceTo(v3(...cfg.target));
@@ -472,13 +354,13 @@ const projected=new THREE.Vector3();
 let lastTime=performance.now();
 function tick(t){
   const dt=Math.min((t-lastTime)/1000,.04);lastTime=t;
-  if(touring){tourTime+=dt;camera.position.set(courtX+Math.sin(tourTime*.11)*3.4,4.8+Math.sin(tourTime*.07)*.65,30.5-Math.sin(tourTime*.09)*2.4);controls.target.set(courtX,floorCount===1?2:3.8,15.2);if(mobileLayout.matches)camera.position.sub(controls.target).multiplyScalar(layoutScale).add(controls.target);}
+  if(touring){tourTime+=dt;camera.position.set(-30+Math.sin(tourTime*.11)*3,14+Math.sin(tourTime*.07)*2,14+Math.sin(tourTime*.09)*12);controls.target.set(house.x,floorCount===1?2:3.6,house.z);if(mobileLayout.matches)camera.position.sub(controls.target).multiplyScalar(layoutScale).add(controls.target);}
   if(cameraTween){const v=Math.min((t-cameraTween.start)/800,1),ease=1-Math.pow(1-v,3);camera.position.lerpVectors(cameraTween.from,cameraTween.to,ease);controls.target.lerpVectors(cameraTween.fromTarget,cameraTween.target,ease);if(v===1)cameraTween=null;}
   gateProgress=THREE.MathUtils.damp(gateProgress,gateOpen?1:0,5,dt);
   carGate.position.x=-2-4.1*gateProgress;pedestrianGate.rotation.y=-Math.PI*.46*gateProgress;
   controls.update();
-  landscape.water.material.uniforms.time.value+=dt*.35;
-  courtyard.update(dt);
+  landscape.update(dt);residence.update?.(dt);
+  if(rainCloud.visible){const positions=rainGeometry.attributes.position;for(let i=0;i<positions.count;i++){let y=positions.getY(i)-dt*9;if(y<0)y=17;positions.setY(i,y);}positions.needsUpdate=true;}
   const w=host.clientWidth,h=host.clientHeight,showLabels=document.getElementById('labels').checked;
   const occupied=[];
   for(const a of annotations){
