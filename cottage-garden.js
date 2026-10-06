@@ -1,11 +1,10 @@
 import * as THREE from 'three';
+import { createRearGarden, rearGardenPlan } from './rear-garden.js?v=a5-rear-water-garden';
 
 // A scheme: a domestic west-facing cottage garden within the surveyed boundary.
 // Ground surfaces are level at 0.085 m; entrance and parking routes stay unobstructed.
 export const gardenFootprints = {
-  rearGarden: [14,21,3,14],
-  rearGardenTerrace: [15.2,18.7,7.1,10.8],
-  rearGardenConnection: [12.8,15.2,7.8,9.2],
+  rearGarden: rearGardenPlan,
   teaDeck: [-2.5, 2.5, 21.2, 24.2],
   vegetableBeds: [[-2.1,-.9,25.5,27.5],[.3,1.5,25.5,27.5],[2.7,3.9,25.5,27.5]],
   vegetableNorthWalk: [-2.1,5.3,24.3,25.5],
@@ -18,7 +17,7 @@ export const gardenFootprints = {
   westFlowerBorder: [-9.4,-5,4.5,9.65]
 };
 export const gardenAnchors = {
-  rearGarden: [17.5,.5,8.5], tea: [0,.8,22.7], vegetables: [1,.5,26.6], chickens: [7.9,.9,22.25],
+  rearGarden: rearGardenPlan.anchor, tea: [0,.8,22.7], vegetables: [1,.5,26.6], chickens: [7.9,.9,22.25],
   garden: [1.8,.5,23.1]
 };
 
@@ -66,7 +65,6 @@ export function createGarden({scene,M,box,cylinder,inSite}) {
     [-11.6,-3.8,10.5,12.1], [-3.8,11.4,19.3,20.9], [-3.75,-2.25,18.8,19.9],
     [-20.75,-12.35,9.2,14.7], [-22.15,-12.35,3.2,9.2],
     [-15.7,-4.7,15.5,24.5],
-    [15.2,18.7,7.1,10.8], [12.8,15.2,7.8,9.2],
     [-3.8,12.8,1.55,2.8], [-3.8,-2.25,2.8,3.9],
     [11.4,12.8,1.5,19.3], [12.8,14,7.8,9.2], [10.7,12.8,18.7,20.3],
     [-2.5,2.5,21.2,24.2], [-1.2,0,20.9,21.3],
@@ -167,7 +165,7 @@ export function createGarden({scene,M,box,cylinder,inSite}) {
     const [x0,x1,z0,z1]=rect;
     return surface([[x0,z0],[x1,z0],[x1,z1],[x0,z1]],y,material);
   }
-  for(const key of ['rearGardenTerrace','rearGardenConnection','teaDeck','teaAccess','vegetableNorthWalk','vegetableSouthWalk','familyGardenWalk','chickenAccess']) rectSurface(gardenFootprints[key]);
+  for(const key of ['teaDeck','teaAccess','vegetableNorthWalk','vegetableSouthWalk','familyGardenWalk','chickenAccess']) rectSurface(gardenFootprints[key]);
   for(const rect of [[-.9,.3,25.5,27.5],[1.5,2.7,25.5,27.5],[3.9,4.1,25.5,27.5]]) rectSurface(rect);
   // Terrace joins the eastern garden walk across a 1.2 m flush link.
   rectSurface([2.5,4.1,22.95,24.15]);
@@ -269,25 +267,7 @@ export function createGarden({scene,M,box,cylinder,inSite}) {
   }
   hen(7.15,22.15,.65,'#eee6d8');hen(7.57,22.96,2.2,'#9c6c42');hen(8.01,21.54,3.8,'#d3b286');
 
-  // The former pool reservation becomes an open rear lawn and a flush garden seat.
-  // These low beds frame the lawn without enclosing the rear windows or service route.
-  bed([[19.43,5.98],[20.22,5.88],[20.62,7.2],[20.59,9.87],[20.24,11.22],[19.55,11.04],[19.48,9.92],[19.69,8.13]]);
-  bed([[14.34,12.41],[15.64,12.12],[17.16,12.5],[19.61,12.1],[20.03,12.88],[18.05,13.26],[15.9,13.02],[14.39,13.2]]);
-  bed([[17.39,3.88],[18.23,3.45],[19.51,3.67],[19.96,4.89],[19.25,5.43],[17.62,5.31]]);
-  tree(18.4,4.55,4.1,1.15);
-  for(const p of [[19.99,6.62,.31,.47],[20.1,9.29,.29,.48],[19.92,10.64,.29,.43],[14.94,12.72,.3,.38],[18.99,12.63,.36,.42],[17.83,4.28,.34,.48],[19.32,4.74,.33,.43]])shrub(...p);
-  for(const p of [[19.96,7.63,.3,0],[19.98,10.13,.3,1],[16.16,12.67,.32,0],[18.01,12.72,.29,1],[17.92,4.79,.3,0]])whiteFlowers(...p);
-  for(const p of [[19.89,8.79,.45],[19.95,6.11,.43],[14.62,12.81,.43],[19.59,12.52,.47],[18.04,3.93,.44]])tuft(...p);
-  for(const p of [[19.87,10.79,.24],[17.01,12.82,.22],[19.35,5.08,.26]])rock(...p);
-  // A long timber bench faces the rear lawn; the table leaves a broad approach from the west.
-  box(.57,.085,2.15,18.09,.49,8.95,timber,garden);
-  box(.055,.39,2.15,18.385,.74,8.95,timber,garden);
-  for(const z of [8.12,9.78]){box(.4,.36,.09,18.09,.265,z,edging,garden);box(.57,.055,.07,18.09,.72,z,timber,garden);}
-  box(.48,.055,1.81,18.06,.56,8.95,cushion,garden);
-  box(.75,.065,.68,16.81,.415,8.95,timber,garden);
-  for(const x of [16.54,17.08])for(const z of [8.74,9.16])box(.045,.28,.045,x,.24,z,edging,garden);
-  cylinder(.055,.045,.06,16.61,.482,8.92,paleStone,garden,16);
-  cylinder(.055,.045,.06,16.98,.482,8.96,paleStone,garden,16);
+  const rearGarden=createRearGarden({parent:garden,M,box,cylinder,inSite});
 
   // Flower garden kept clear of sports, entrances and farm circulation.
   bed([[-9.45,5.1],[-8.9,4.67],[-6.4,4.75],[-5.4,5.5],[-5.2,6.5],[-6.4,6.72],[-8.65,6.5],[-9.42,6.1]]);
@@ -334,7 +314,7 @@ export function createGarden({scene,M,box,cylinder,inSite}) {
     dummy.rotation.set(0,a,0);dummy.scale.set(p.s*.48,p.s*.23,p.s*.7);dummy.updateMatrix();petals.setMatrixAt(i*5+j,dummy.matrix);petals.setColorAt(i*5+j,colour.set(flowerColours[p.tone||0]));
   }});petals.computeBoundingSphere();garden.add(petals);
 
-  for(const [x,z]of [[14.78,7.31],[18.95,10.91],[19.13,5.82],[-9.35,6.87],[-5.05,9.68],[-6.01,14.68],[-3.95,21.02],[3.65,21.02],[3.71,24.17],[5.68,25.16],[5.63,27.5],[-2.42,27.12],[6.05,20.93]]) {
+  for(const [x,z]of [[-9.35,6.87],[-5.05,9.68],[-6.01,14.68],[-3.95,21.02],[3.65,21.02],[3.71,24.17],[5.68,25.16],[5.63,27.5],[-2.42,27.12],[6.05,20.93]]) {
     if(!safe(x,z,.18)||blocked(x,z,.18))continue;
     box(.09,.42,.09,x,.33,z,edging,garden);box(.16,.03,.16,x,.555,z,edging,garden);box(.075,.04,.075,x,.52,z,glow,garden);
     const light=new THREE.PointLight('#ffdeaa',0,3.4,2);light.position.set(x,.53,z);garden.add(light);lamps.push(light);
@@ -345,8 +325,9 @@ export function createGarden({scene,M,box,cylinder,inSite}) {
     glow.emissiveIntensity=dusk?2.25:rain?.55:.15;
     lamps.forEach(light=>{light.intensity=dusk?2.1:rain?.35:0;});
     treeLight.intensity=dusk?12:0;
+    rearGarden.setLight(dusk,rain);
   }
-  function update(dt) { /* Static planting and farm objects keep mobile rendering light. */ }
-  function excludesGrass(x,z) {return surfaces.some(outline=>inside(outline,x,z));}
+  function update(dt) { rearGarden.update(dt); }
+  function excludesGrass(x,z) {return rearGarden.excludesGrass(x,z)||surfaces.some(outline=>inside(outline,x,z));}
   return {garden,setLight,update,excludesGrass,footprints:gardenFootprints,anchors:gardenAnchors};
 }
