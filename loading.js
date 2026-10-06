@@ -62,7 +62,7 @@
 
   window.courtyardLoading = loading;
   scene.setAttribute('aria-busy', 'true');
-  import('./main.js?v=20261006-axis').catch(error => {
+  import('./main.js?v=20261006-mobile').catch(error => {
     console.error('Courtyard initialization failed:', error);
     loading.fail();
   });

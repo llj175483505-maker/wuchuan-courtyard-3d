@@ -5,6 +5,7 @@ import { prepareMaterials, modernRoof, naturalPlanting, architecturalDetails } f
 import { enclosedCourtyard } from './courtyard-style.js?v=20261006-axis';
 import { intimateGarden } from './reference-garden.js?v=20261006-axis';
 import { timberColumn, galleryCanopy, stoneCourtyardFrame } from './architecture-kit.js';
+import { mobileLayout, sceneInsets, setupMobileUI } from './mobile-ui.js?v=20261006-mobile';
 
 const loading = window.courtyardLoading;
 await loading.stage(1, '正在启动三维引擎', '程序已加载 · 正在准备显示设备');
@@ -412,6 +413,8 @@ if(siteData.existingBuilding){
 document.getElementById('dimension-source').innerHTML=`<p><b>图纸基准</b><br>由原 PDF 矢量边界提取，按北侧东西总投影 55m 定标。模型面积约 1130.01㎡；图注 1130㎡。北边保留原有折点。内部30.170m、16.413m和12.658m也已交叉核对。</p><p><b>待复核的一条边</b><br>东南斜边图注 20.37m，矢量按比例约 20.69m。本模型保留原图轮廓，未强行改形。其余图注与矢量线长存在毫米至厘米级差异。</p><p><b>原建筑</b><br>轮廓按原图位置恢复。图注11×11.86m与文字120㎡存在差异，图示尺寸乘积约130.46㎡。</p><p><b>新建设计假设</b><br>主屋 20×10m，占地200㎡（按外墙外边线，不含廊檐），可切换1／2／3层；层高3.3m，低坡瓦屋脊分别约4.8／8.1／11.4m；二层方案中客厅上方设约23.5㎡挑空，主屋示意建面约376.5㎡，三层约576.5㎡。切换层数不改变主屋占地及地界。另设左右单层厢房各4×8m，合计64㎡，沿主屋南面衔接，主屋、门厅、主屋屋脊和两侧厢房以同一中轴对齐，中轴位于场景x=-1.25m；最紧的右厢房檐角距图示地界约1.65m，仅为几何余量，实际退界另核。围墙含压顶总高2.00m，门柱含压顶总高2.25m，门扇顶部1.95m；均为方案高度。车门净宽4m，人行门净宽1.2m。西北侧3个独立并排车位，每位2.8×5.5m，北侧倒车通道深6m、宽9.8m，停车区调整至靠入口，车位东缘距主屋西墙约1.10m；菜园与家务台位于西侧。三车均直接面对同一通道，不作串联停车。车型暂以4.75×1.85m乘用车示意，具体车型转弯轨迹尚未校核。位置、尺寸均可调整，非批准方案。</p><p><b>原图未提供</b><br>道路宽度暂示意5.5m；地面按平地展示。现场高差、邻房及退界须补充实测。围墙、树木、水景、装修及一楼隔间均为概念。场景只展示原图地块及临街道路，未模拟周边土地与树林；日光与傍晚不代表实际日照分析。建筑细部采用深木色廊柱、木条檐底、灰石柱脚与暗藏暖光，采用简洁直线收边。侧廊柱脚宽0.40m，计入突出窗台后的图示最窄净宽约1.40m。园林采用东侧水庭、西侧茶席的非对称布局；两侧廊柱之间约5.8m保持开阔，侧院连续步道连接休憩区。水景、植物及家具均为拟建设计，植物品种待结合现场日照选定。</p>`;
 
 let cameraTween=null,gateOpen=false,gateProgress=0,touring=false,tourTime=0;
+let activeView='garden',layoutScale=1,hasView=false;
+let safeScene={top:95,bottom:110};
 function stopTour(){touring=false;document.getElementById('tour-toggle').textContent='自动漫游';document.getElementById('tour-toggle').setAttribute('aria-pressed','false');}
 const presets={
   overview:{pos:[-47,63,68],target:[0,0,13],caption:'鼠标左键拖动旋转 · 滚轮缩放 · 右键平移'},
@@ -423,18 +426,24 @@ const presets={
   tea:{pos:[-7,4.8,29],target:[-12.9,.6,24.8],caption:'树下茶席 · 四人围坐，步道通往主庭院'},
   top:{pos:[0,86,13.1],target:[0,0,13],caption:'北在上，东在右 · 按米制比例查看用地'}
 };
+const mobileFrames={overview:[60,42],parking:[17,14],gate:[15,12],garden:[28,22],detail:[7,6],water:[8,7],tea:[8,7],top:[60,40]};
+function framingScale(name){
+  if(!mobileLayout.matches)return 1;
+  const cfg=presets[name],distance=v3(...cfg.pos).distanceTo(v3(...cfg.target));
+  const visibleHeight=2*distance*Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
+  const [width,height]=mobileFrames[name],usableHeight=Math.max(100,host.clientHeight-safeScene.top-safeScene.bottom);
+  return Math.max(1,width/(visibleHeight*camera.aspect),height/(visibleHeight*usableHeight/host.clientHeight));
+}
 function setView(name,instant=false){
-  stopTour();
-  const cfg=presets[name];const pos=v3(...cfg.pos);if(innerWidth<640){
-    if(name==='overview')pos.multiplyScalar(2.05);
-    else if(name==='top')pos.y=195;
-    else pos.sub(v3(...cfg.target)).multiplyScalar(1.55).add(v3(...cfg.target));
-  }
+  stopTour();activeView=name;layoutScale=framingScale(name);hasView=true;
+  const cfg=presets[name],target=v3(...cfg.target);
+  const pos=v3(...cfg.pos).sub(target).multiplyScalar(layoutScale).add(target);
   cameraTween=null;controls.enableDamping=false;controls.update();
   camera.position.copy(pos);controls.target.set(...cfg.target);controls.update();controls.enableDamping=true;
   renderer.render(scene,camera);
   document.querySelectorAll('[data-view]').forEach(b=>{b.classList.toggle('active',b.dataset.view===name);b.setAttribute('aria-pressed',b.dataset.view===name?'true':'false');});
-  document.getElementById('view-caption').textContent=innerWidth<640&&name==='overview'?'单指旋转 · 双指缩放和平移':cfg.caption;
+  document.getElementById('view-caption').textContent=mobileLayout.matches&&name==='overview'?'单指旋转 · 双指缩放和平移':cfg.caption;
+  if(mobileLayout.matches){const bar=document.querySelector('.viewbar'),selected=bar.querySelector('[data-view="'+name+'"]');bar.scrollTo({left:Math.max(0,selected.offsetLeft-(bar.clientWidth-selected.offsetWidth)/2),behavior:'auto'});}
 }
 document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
 controls.addEventListener('start',()=>{cameraTween=null;stopTour();});
@@ -447,16 +456,23 @@ document.getElementById('help').addEventListener('click',()=>document.getElement
 document.getElementById('help-close').addEventListener('click',()=>document.getElementById('help-dialog').close());
 document.getElementById('plan-button').addEventListener('click',()=>document.getElementById('plan-dialog').showModal());
 document.getElementById('plan-close').addEventListener('click',()=>document.getElementById('plan-dialog').close());
-document.getElementById('panel-toggle').addEventListener('click',e=>{const panel=document.querySelector('.panel');panel.classList.toggle('open');e.target.setAttribute('aria-expanded',panel.classList.contains('open'));e.target.textContent=panel.classList.contains('open')?'收起场地设置':'场地信息与设置';});
+setupMobileUI({onReset:()=>setView('garden'),onPanelChange:open=>{controls.enabled=!open;if(open)stopTour();}});
 for(const d of document.querySelectorAll('dialog'))d.addEventListener('click',e=>{if(e.target===d)d.close();});
-function resize(){const w=host.clientWidth,h=host.clientHeight;camera.aspect=w/h;renderer.setSize(w,h);camera.clearViewOffset();if(w>640){const offset=Math.min(150,w*.13);camera.setViewOffset(w,h,-offset,0,w,h);}camera.updateProjectionMatrix();}
+function resize(){
+  const w=host.clientWidth,h=host.clientHeight;camera.aspect=w/h;renderer.setSize(w,h);camera.clearViewOffset();safeScene=sceneInsets();
+  if(mobileLayout.matches)camera.setViewOffset(w,h,0,(safeScene.bottom-safeScene.top)/2,w,h);
+  else{const offset=Math.min(150,w*.13);camera.setViewOffset(w,h,-offset,0,w,h);}
+  camera.updateProjectionMatrix();
+  if(hasView){const next=framingScale(activeView);camera.position.sub(controls.target).multiplyScalar(next/layoutScale).add(controls.target);layoutScale=next;cameraTween=null;}
+}
+
 await loading.stage(21, '正在渲染首帧画面', '正在准备阴影与水面反射，首次打开可能需要稍候');
-addEventListener('resize',resize);resize();setView('garden',true);
+addEventListener('resize',resize);mobileLayout.addEventListener('change',resize);resize();setView('garden',true);
 const projected=new THREE.Vector3();
 let lastTime=performance.now();
 function tick(t){
   const dt=Math.min((t-lastTime)/1000,.04);lastTime=t;
-  if(touring){tourTime+=dt;camera.position.set(courtX+Math.sin(tourTime*.11)*3.4,4.8+Math.sin(tourTime*.07)*.65,30.5-Math.sin(tourTime*.09)*2.4);controls.target.set(courtX,floorCount===1?2:3.8,15.2);}
+  if(touring){tourTime+=dt;camera.position.set(courtX+Math.sin(tourTime*.11)*3.4,4.8+Math.sin(tourTime*.07)*.65,30.5-Math.sin(tourTime*.09)*2.4);controls.target.set(courtX,floorCount===1?2:3.8,15.2);if(mobileLayout.matches)camera.position.sub(controls.target).multiplyScalar(layoutScale).add(controls.target);}
   if(cameraTween){const v=Math.min((t-cameraTween.start)/800,1),ease=1-Math.pow(1-v,3);camera.position.lerpVectors(cameraTween.from,cameraTween.to,ease);controls.target.lerpVectors(cameraTween.fromTarget,cameraTween.target,ease);if(v===1)cameraTween=null;}
   gateProgress=THREE.MathUtils.damp(gateProgress,gateOpen?1:0,5,dt);
   carGate.position.x=-2-4.1*gateProgress;pedestrianGate.rotation.y=-Math.PI*.46*gateProgress;
@@ -472,8 +488,8 @@ function tick(t){
     else if(a.type==='space')visible=showLabels;
     if(visible){projected.copy(a.position).project(camera);visible=projected.z>-1&&projected.z<1&&Math.abs(projected.x)<.97&&Math.abs(projected.y)<.94;
       let xx=(projected.x*.5+.5)*w;const yy=(-projected.y*.5+.5)*h;
-      if(w>640&&xx<330&&yy<host.clientHeight-120)visible=false;
-      if(yy<95||yy>h-110)visible=false;
+      if(!mobileLayout.matches&&xx<330&&yy<host.clientHeight-120)visible=false;
+      if(yy<safeScene.top||yy>h-safeScene.bottom)visible=false;
       const width=a.el.offsetWidth||a.el.textContent.length*12+16;
       xx=THREE.MathUtils.clamp(xx,width/2+8,w-width/2-8);
       const rect={l:xx-width/2-4,r:xx+width/2+4,t:yy-30,b:yy+5};
