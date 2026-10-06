@@ -1,18 +1,25 @@
 import * as THREE from 'three';
-import { Water } from 'three/addons/objects/Water.js';
 
 // A scheme: a domestic west-facing cottage garden within the surveyed boundary.
 // Ground surfaces are level at 0.085 m; entrance and parking routes stay unobstructed.
 export const gardenFootprints = {
-  teaDeck: [-14.8, -11.2, 22.05, 25.45],
-  reflectingPool: [-10.55, -4.8, 20.95, 24.2],
-  westConnection: [-13.15, -10.1, 18.4, 22.4],
-  cottageWalk: [-10.6, -3.8, 12.1, 20.05],
-  westFlowerBorder: [-10.02, -8.3, 13.4, 18.8],
-  terraceFlowerBorder: [-5.3, -4.05, 14.3, 19.0],
-  easternBorder: [5, 9.25, 20.65, 23.85],
-  centralTree: [-2.25, 1.05, 21.3, 24.35],
-  southernBorder: [-.65, 1.05, 25.1, 30.1],
+  rearGarden: [14,21,3,14],
+  rearGardenTerrace: [15.2,18.7,7.1,10.8],
+  rearGardenConnection: [12.8,15.2,7.8,9.2],
+  teaDeck: [-2.5, 2.5, 21.2, 24.2],
+  vegetableBeds: [[-2.1,-.9,25.5,27.5],[.3,1.5,25.5,27.5],[2.7,3.9,25.5,27.5]],
+  vegetableNorthWalk: [-2.1,5.3,24.3,25.5],
+  vegetableSouthWalk: [-2.1,5.3,27.5,28.7],
+  familyGardenWalk: [4.1,5.3,20.7,28.7],
+  chickenRun: [6.3,9.5,21,23.5],
+  chickenCoop: [8.195,9.445,21.25,22.87],
+  chickenAccess: [7.05,8.25,20.7,21.08],
+  teaAccess: [-1.2,0,20.9,21.3],
+  westFlowerBorder: [-9.4,-5,4.5,9.65]
+};
+export const gardenAnchors = {
+  rearGarden: [17.5,.5,8.5], tea: [0,.8,22.7], vegetables: [1,.5,26.6], chickens: [7.9,.9,22.25],
+  garden: [1.8,.5,23.1]
 };
 
 function leafGeometry() {
@@ -54,8 +61,21 @@ export function createGarden({scene,M,box,cylinder,inSite}) {
     }
     return yes;
   }
+  const clearAreas = [
+    [-2.4,11.4,2.65,19.95], [-3.8,-1.75,3.8,19], [-11.6,-10.1,3.25,14.5],
+    [-11.6,-3.8,10.5,12.1], [-3.8,11.4,19.3,20.9], [-3.75,-2.25,18.8,19.9],
+    [-20.75,-12.35,9.2,14.7], [-22.15,-12.35,3.2,9.2],
+    [-15.7,-4.7,15.5,24.5],
+    [15.2,18.7,7.1,10.8], [12.8,15.2,7.8,9.2],
+    [-3.8,12.8,1.55,2.8], [-3.8,-2.25,2.8,3.9],
+    [11.4,12.8,1.5,19.3], [12.8,14,7.8,9.2], [10.7,12.8,18.7,20.3],
+    [-2.5,2.5,21.2,24.2], [-1.2,0,20.9,21.3],
+    [4.1,5.3,20.7,28.7], [-2.1,5.3,24.3,25.5], [-2.1,5.3,27.5,28.7],
+    [-.9,.3,25.5,27.5], [1.5,2.7,25.5,27.5], [3.9,4.1,25.5,27.5],
+    [6.3,9.5,21,23.5], [7.05,8.25,20.7,21.08]
+  ];
   function blocked(x,z,r=0) {
-    return [[-2.4,11.4,2.65,19.95],[-3.8,-1.75,3.8,19],[-11.6,-10.1,3.25,18.8],[-11.6,-3.8,10.5,12.1],[-3.8,4.95,19.3,20.9],[-3.75,-2.25,18.8,19.9],[1.8,3.8,19.1,29],[-8.1,-6.6,12.1,14.9],[-7.65,-6.25,14.9,20.05],[-10.6,-7.4,19,20.05],[-6.7,-3.8,14.65,16],[-20.75,-12.35,9.2,14.7],[-22.15,-12.35,3.2,9.2]].some(([x0,x1,z0,z1])=>x+r>x0&&x-r<x1&&z+r>z0&&z-r<z1);
+    return clearAreas.some(([x0,x1,z0,z1])=>x+r>x0&&x-r<x1&&z+r>z0&&z-r<z1);
   }
   function safe(x,z,r=0) {
     for (let i=0;i<12;i++) if (!inSite(x+Math.cos(i*Math.PI/6)*r,z+Math.sin(i*Math.PI/6)*r)) return false;
@@ -142,93 +162,148 @@ export function createGarden({scene,M,box,cylinder,inSite}) {
     }
   }
 
-  // Continuous stone circulation: the path connects the villa terrace to the tea deck.
-  surface([[-11.6,18.4],[-10.1,18.4],[-10.1,20.1],[-11.1,22.4],[-13.15,22.4],[-13.15,21.1],[-11.6,19.4]],.085,paleStone);
-  // Broad flush stone strips meander through the front garden, never crossing the pond.
-  surface([[-8.1,12.1],[-6.7,12.1],[-6.7,14.7],[-6.25,16.3],[-6.25,18.6],[-6.6,20.05],[-8.0,20.05],[-7.65,18.45],[-7.65,16.5],[-8.1,14.9]],.085,paleStone);
-  surface([[-6.7,14.65],[-3.8,14.65],[-3.8,16.0],[-6.4,16.0]],.085,paleStone);
-  surface([[-10.6,19.0],[-7.4,19.0],[-7.4,20.05],[-10.6,20.05]],.085,paleStone);
-  for(let z=12.35;z<19.9;z+=.72) {
-    const x=z<15 ? -7.4 : z<18.5 ? -6.95 : -7.2;
-    box(1.19,.005,.011,x,.088,z,stone,garden);
+  // A compact southern tea terrace and fully connected kitchen-garden paths.
+  function rectSurface(rect,y=.085,material=paleStone) {
+    const [x0,x1,z0,z1]=rect;
+    return surface([[x0,z0],[x1,z0],[x1,z1],[x0,z1]],y,material);
   }
-  box(3.6,.075,3.4,-13,.0475,23.75,paleStone,garden);
-  surfaces.push([[-14.8,22.05],[-11.2,22.05],[-11.2,25.45],[-14.8,25.45]]);
-  for(let i=0;i<14;i++) box(3.44,.025,.22,-13,.0725,22.18+i*.24,timber,garden);
-  // Solid seat backs and generous arm rests; no steps or bridge on the walking route.
-  const tea = new THREE.Group();tea.position.set(-13,.085,23.75);garden.add(tea);
-  cylinder(.6,.6,.065,0,.66,0,stone,tea,40);
-  cylinder(.16,.25,.63,0,.32,0,M.dark,tea,16);
+  for(const key of ['rearGardenTerrace','rearGardenConnection','teaDeck','teaAccess','vegetableNorthWalk','vegetableSouthWalk','familyGardenWalk','chickenAccess']) rectSurface(gardenFootprints[key]);
+  for(const rect of [[-.9,.3,25.5,27.5],[1.5,2.7,25.5,27.5],[3.9,4.1,25.5,27.5]]) rectSurface(rect);
+  // Terrace joins the eastern garden walk across a 1.2 m flush link.
+  rectSurface([2.5,4.1,22.95,24.15]);
+  clearAreas.push([2.5,4.1,22.95,24.15]);
+  for(let i=0;i<18;i++) box(4.82,.014,.15,0,.093,21.3+i*.16,timber,garden);
+  const tea=new THREE.Group();tea.name='family-tea-terrace';tea.position.set(0,.085,22.65);garden.add(tea);
+  cylinder(.59,.59,.065,0,.66,0,stone,tea,40);cylinder(.16,.25,.63,0,.32,0,M.dark,tea,16);
   for(const a of [0,Math.PI/2,Math.PI,Math.PI*1.5]) {
-    const chair = new THREE.Group(); chair.position.set(Math.sin(a)*1.11,0,Math.cos(a)*1.11);chair.rotation.y=a;tea.add(chair);
+    const chair=new THREE.Group();chair.position.set(Math.sin(a)*1.13,0,Math.cos(a)*1.05);chair.rotation.y=a;tea.add(chair);
     box(.61,.07,.64,0,.42,0,timber,chair);box(.54,.09,.55,0,.5,0,cushion,chair);
     for(const x of [-.265,.265])for(const z of [-.26,.26])box(.045,.4,.045,x,.2,z,M.dark,chair);
     box(.59,.37,.065,0,.76,.28,timber,chair);box(.51,.27,.035,0,.75,.24,cushion,chair);
     for(const x of [-.3,.3]) {box(.045,.29,.045,x,.58,.24,M.dark,chair);box(.065,.045,.62,x,.72,0,timber,chair);}
   }
   cylinder(.12,.09,.14,0,.77,0,M.clay,tea,20);
-  for(const [x,z]of [[.25,.15],[-.25,.12],[.02,-.26]]) cylinder(.058,.046,.055,x,.72,z,paleStone,tea,16);
+  for(const [x,z]of [[.25,.15],[-.25,.12],[.02,-.26]])cylinder(.058,.046,.055,x,.72,z,paleStone,tea,16);
 
-  // Low, planted mirror pool. A broad dry margin separates it from every entrance route.
-  const pondPoints=[[-10.28,21.71],[-8.9,21.09],[-6.37,21.18],[-4.98,21.85],[-5.2,23.37],[-6.8,24.07],[-9.15,23.91],[-10.36,23]];
-  const pondCurve=curve(pondPoints,.19), pondOutline=pondCurve.getPoints(128).map(p=>[p.x,p.z]);
-  if (!pondOutline.every(([x,z])=>safe(x,z,.18))) throw new Error('A mirror pool exceeds the surveyed boundary');
-  surface(pondOutline,.116,M.water);
-  const normalData=new Uint8Array(64*64*4);
-  for(let y=0;y<64;y++)for(let x=0;x<64;x++) {
-    const i=(y*64+x)*4;normalData[i]=128+Math.sin(x*.25+y*.31)*13;
-    normalData[i+1]=128+Math.cos(x*.28-y*.19)*13;normalData[i+2]=252;normalData[i+3]=255;
+  // Reachable 1.2 m raised beds, with 1.2 m aisles and planted crop rows.
+  const cropMaterial=new THREE.MeshStandardMaterial({color:'#689044',roughness:.94,side:THREE.DoubleSide});
+  const cropLeaf=leafGeometry();
+  const cropData=[];
+  gardenFootprints.vegetableBeds.forEach(([x0,x1,z0,z1],index)=> {
+    const x=(x0+x1)/2,z=(z0+z1)/2;
+    rectSurface([x0,x1,z0,z1],.25,soil);
+    box(x1-x0,.25,.07,x,.18,z0+.035,timber,garden);box(x1-x0,.25,.07,x,.18,z1-.035,timber,garden);
+    box(.07,.25,z1-z0,x0+.035,.18,z,timber,garden);box(.07,.25,z1-z0,x1-.035,.18,z,timber,garden);
+    for(let row=0;row<3;row++)for(let col=0;col<6;col++) {
+      const xx=x0+.24+row*.36,zz=z0+.2+col*.31;
+      for(let leaf=0;leaf<6;leaf++)cropData.push({x:xx,y:.27,z:zz,a:leaf*Math.PI/3,s:index===1?.38:.48,t:index});
+      if(index===1) {
+        cylinder(.012,.014,.72,xx,.61,zz,M.wood,garden,5);
+        for(let fruit=0;fruit<3;fruit++) {
+          const tomato=new THREE.Mesh(new THREE.SphereGeometry(.046,7,5),new THREE.MeshStandardMaterial({color:fruit===0?'#bf6241':'#bd9f43',roughness:.7}));
+          tomato.position.set(xx+.055*Math.cos(fruit*2.1),.51+fruit*.10,zz+.055*Math.sin(fruit*2.1));garden.add(tomato);
+        }
+      }
+    }
+    const marker=box(.23,.13,.018,x0+.26,.55,z0+.18,paleStone,garden);marker.rotation.x=-.17;
+    cylinder(.012,.012,.29,x0+.26,.36,z0+.18,timber,garden,6);
+  });
+  const cropMesh=new THREE.InstancedMesh(cropLeaf,cropMaterial,cropData.length);
+  cropData.forEach((p,i)=>{dummy.position.set(p.x,p.y,p.z);dummy.rotation.set(-.5,p.a,.15);dummy.scale.setScalar(p.s);dummy.updateMatrix();cropMesh.setMatrixAt(i,dummy.matrix);cropMesh.setColorAt(i,colour.setHSL(.235+p.t*.035,.35,.31+rand()*.15));});
+  cropMesh.castShadow=cropMesh.receiveShadow=true;cropMesh.computeBoundingSphere();garden.add(cropMesh);
+
+  // A small 8 m² enclosed poultry corner. The north gate opens onto the service walk.
+  const run=gardenFootprints.chickenRun;
+  rectSurface(run,.088,soil);
+  const wireMaterial=new THREE.LineBasicMaterial({color:'#637568',transparent:true,opacity:.57});
+  function meshPanel(x0,z0,x1,z1,y0=.12,y1=1.78) {
+    const length=Math.hypot(x1-x0,z1-z0),points=[];
+    for(let u=0;u<=length+.001;u+=.115) {
+      const t=Math.min(u/length,1),x=x0+(x1-x0)*t,z=z0+(z1-z0)*t;
+      points.push(x,y0,z,x,y1,z);
+    }
+    for(let y=y0;y<=y1+.001;y+=.115)points.push(x0,y,z0,x1,y,z1);
+    const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(points,3));
+    const mesh=new THREE.LineSegments(geometry,wireMaterial);garden.add(mesh);
   }
-  const normal = new THREE.DataTexture(normalData,64,64);normal.wrapS=normal.wrapT=THREE.RepeatWrapping;normal.needsUpdate=true;
-  const water = new Water(new THREE.ShapeGeometry(shape(pondOutline)),{textureWidth:512,textureHeight:512,waterNormals:normal,waterColor:'#244942',sunColor:'#e8e5d7',sunDirection:new THREE.Vector3(.5,.8,.5),distortionScale:.11,fog:true});
-  water.rotation.x=-Math.PI/2;water.position.y=.145;garden.add(water);
-  water.material.fragmentShader=water.material.fragmentShader.replace('float rf0 = 0.3;','float rf0 = 0.07;').replace('worldPosition.xz * size','worldPosition.xz * size * 10.0').replace('sunColor * diffuseLight * 0.3','sunColor * diffuseLight * 0.04');
-  const pondEdge=new THREE.Mesh(new THREE.TubeGeometry(pondCurve,128,.115,8,true),stone);
-  pondEdge.castShadow=pondEdge.receiveShadow=true;garden.add(pondEdge);
-  // Fine concentric ripples remain entirely inside the water outline.
-  const ripples=[];
-  const rippleMaterial=new THREE.MeshBasicMaterial({color:'#b2c2ad',transparent:true,opacity:.12,depthWrite:false,side:THREE.DoubleSide});
-  for(let i=0;i<3;i++) {
-    const mesh=new THREE.Mesh(new THREE.RingGeometry(.48,.494,56),rippleMaterial.clone());
-    mesh.rotation.x=-Math.PI/2;mesh.position.set(-7.85,.151,22.45);garden.add(mesh);ripples.push(mesh);
+  function fenceRail(x0,z0,x1,z1,y) {
+    const length=Math.hypot(x1-x0,z1-z0),rail=box(length,.055,.055,(x0+x1)/2,y,(z0+z1)/2,timber,garden);
+    rail.rotation.y=-Math.atan2(z1-z0,x1-x0);
   }
+  for(const [x,z]of [[6.3,21],[7.05,21],[8.25,21],[9.5,21],[9.5,23.5],[6.3,23.5]])box(.065,1.75,.065,x,.96,z,timber,garden);
+  for(const seg of [[6.3,21,7.05,21],[8.25,21,9.5,21],[9.5,21,9.5,23.5],[9.5,23.5,6.3,23.5],[6.3,23.5,6.3,21]]) {
+    meshPanel(...seg);fenceRail(...seg,.17);fenceRail(...seg,1.78);
+  }
+  // Closed, visually distinct 1.2 m service gate with latch and hinges.
+  meshPanel(7.08,21,8.22,21,.15,1.72);
+  for(const y of [.17,1.71])box(1.14,.065,.065,7.65,y,21,timber,garden);
+  for(const x of [7.08,8.22])box(.065,1.55,.065,x,.94,21,timber,garden);
+  box(.13,.045,.08,8.15,1.08,20.96,M.dark,garden);
+  // Overhead mesh keeps the run fully enclosed while retaining daylight.
+  const roofWire=[];
+  for(let x=6.3;x<=9.5;x+=.14)roofWire.push(x,1.79,21,x,1.79,23.5);
+  for(let z=21;z<=23.5;z+=.14)roofWire.push(6.3,1.79,z,9.5,1.79,z);
+  const topGeometry=new THREE.BufferGeometry();topGeometry.setAttribute('position',new THREE.Float32BufferAttribute(roofWire,3));garden.add(new THREE.LineSegments(topGeometry,wireMaterial));
+  // Timber coop set inside the run; eaves never project outside the enclosure.
+  box(1.04,1.05,1.36,8.82,.91,22.06,timber,garden);
+  for(const x of [8.35,9.29])for(const z of [21.45,22.67])box(.085,.4,.085,x,.29,z,M.dark,garden);
+  for(let z=21.46;z<22.7;z+=.14)box(.018,.95,.017,8.291,.94,z,M.wood,garden);
+  const roofLeft=box(.67,.065,1.62,8.53,1.51,22.06,M.roof,garden);roofLeft.rotation.z=.23;
+  const roofRight=box(.67,.065,1.62,9.11,1.51,22.06,M.roof,garden);roofRight.rotation.z=-.23;
+  box(.028,.34,.34,8.286,.71,22.02,M.dark,garden);
+  const ramp=box(.67,.045,.3,7.965,.36,22.02,timber,garden);ramp.rotation.z=.37;
+  for(let x=7.69;x<8.24;x+=.12) {const slat=box(.035,.025,.31,x,.255+(x-7.69)*.38,22.02,M.wood,garden);slat.rotation.z=.37;}
+  box(.028,.24,.34,8.287,1.22,21.54,M.dark,garden);
+  for(const z of [21.42,21.50,21.58,21.66])box(.035,.24,.018,8.27,1.22,z,timber,garden);
+  const feeder=M.clay.clone();feeder.color.set('#bf8b65');
+  cylinder(.14,.19,.23,6.7,.235,21.45,feeder,garden,20);cylinder(.22,.22,.055,6.7,.145,21.45,M.dark,garden,24);
+  cylinder(.13,.16,.24,6.73,.255,23.01,M.white,garden,20);cylinder(.23,.23,.055,6.73,.145,23.01,M.water,garden,24);
+  function hen(x,z,a,tone) {
+    const h=new THREE.Group();h.position.set(x,.105,z);h.rotation.y=a;garden.add(h);
+    const feathers=new THREE.MeshStandardMaterial({color:tone,roughness:.98});
+    function egg(rx,ry,rz,xx,yy,zz,mat) {const m=new THREE.Mesh(new THREE.SphereGeometry(1,9,6),mat);m.scale.set(rx,ry,rz);m.position.set(xx,yy,zz);m.castShadow=true;h.add(m);return m;}
+    egg(.115,.13,.185,0,.27,0,feathers);egg(.063,.10,.065,0,.4,.14,feathers);
+    egg(.03,.035,.055,0,.49,.15,feeder);egg(.042,.035,.035,0,.395,.208,feeder);
+    for(const x of [-.045,.045]) {cylinder(.009,.009,.14,x,.1,0,feeder,h,5);box(.027,.013,.074,x,.028,.02,feeder,h);egg(.008,.008,.008,x*.95,.425,.184,M.black);}
+    const tail=egg(.07,.12,.055,0,.32,-.17,feathers);tail.rotation.x=-.55;
+  }
+  hen(7.15,22.15,.65,'#eee6d8');hen(7.57,22.96,2.2,'#9c6c42');hen(8.01,21.54,3.8,'#d3b286');
 
-  bed([[-11.05,23.8],[-9.5,24.2],[-7.45,24.25],[-5.85,23.85],[-5.35,24.25],[-6.95,24.71],[-9.3,24.69],[-11.05,24.27]]);
-  bed([[-9.95,20.47],[-9.2,20.39],[-7,20.43],[-5.25,20.6],[-4.62,21.03],[-5.2,21.18],[-7.4,20.71],[-9.2,20.73],[-9.96,21.06]]);
-  bed([[-15.2,20.25],[-13.9,20.3],[-13.55,20.9],[-14.13,21.7],[-15.52,22.12],[-16.05,21.38]]);
-  // Low flower borders leave views between the cottage, lawn and southern tea court.
-  bed([[5.05,21.52],[6.7,21.52],[8.17,21.05],[9.1,21.7],[8.82,23.1],[7.35,23.65],[5.88,23.38],[5.1,22.1]]);
-  bed([[-1.82,21.35],[-.42,21.35],[.9,21.45],[1.07,23.55],[.34,24.25],[-1.47,24.12],[-2.02,22.7]]);
-  bed([[-.34,25.17],[.88,25.3],[1.02,27.45],[.78,29.9],[.15,30.08],[-.42,28.55],[-.65,26.65]]);
-  bed([[-15.28,23.19],[-15.06,23.73],[-15.04,25.45],[-14.73,25.85],[-15.12,26.04],[-15.56,25.27],[-15.82,24.28]]);
-  for(const p of [[-9.7,20.46,.37,.46],[-6.5,20.45,.4,.43],[-5.04,20.88,.25,.35],[-10.1,24.44,.32,.4],[-8.3,24.43,.4,.4],[-6.3,24.36,.27,.3],[-15.22,20.77,.44,.48],[-15.18,25.48,.25,.4],[5.58,21.97,.43,.52],[7.58,23.15,.48,.47],[8.57,21.79,.3,.48],[-1.35,23.69,.36,.4],[.58,23.86,.3,.39],[.53,26.2,.32,.37],[.18,29.43,.25,.32]]) shrub(...p);
-  for(const p of [[-9.85,20.55,.45],[-7.78,20.48,.64],[-5.52,24.18,.5],[-9.06,24.44,.5],[-15.03,21.47,.66],[-15.43,24.74,.49],[5.49,21.80,.6],[6.12,23.13,.65],[8.56,22.77,.58],[-1.36,21.48,.6],[.68,22.6,.62],[.57,27.3,.67],[-.15,28.35,.57]]) tuft(...p);
-  for(const p of [[-6.74,20.52,.22],[-9.28,24.44,.2],[-15.44,21.33,.25],[5.71,22.52,.26],[8.4,22.9,.22],[.24,24.05,.22],[.41,28.48,.23]]) whiteFlowers(...p);
-  for(const p of [[-6,23.72,.29],[-10.02,21.14,.24],[-15.34,21.6,.29],[5.8,21.81,.28],[8.48,22.87,.3],[-1.53,23.73,.29],[.43,29.52,.22]]) rock(...p);
-  tree(-14.85,20.9,3.5,1.15);
-  tree(-.6,22.7,4.8,1.4);
-  tree(7.2,21.9,3.7,1.05);
-  tree(-9.0,17.25,4.2,1.05);
+  // The former pool reservation becomes an open rear lawn and a flush garden seat.
+  // These low beds frame the lawn without enclosing the rear windows or service route.
+  bed([[19.43,5.98],[20.22,5.88],[20.62,7.2],[20.59,9.87],[20.24,11.22],[19.55,11.04],[19.48,9.92],[19.69,8.13]]);
+  bed([[14.34,12.41],[15.64,12.12],[17.16,12.5],[19.61,12.1],[20.03,12.88],[18.05,13.26],[15.9,13.02],[14.39,13.2]]);
+  bed([[17.39,3.88],[18.23,3.45],[19.51,3.67],[19.96,4.89],[19.25,5.43],[17.62,5.31]]);
+  tree(18.4,4.55,4.1,1.15);
+  for(const p of [[19.99,6.62,.31,.47],[20.1,9.29,.29,.48],[19.92,10.64,.29,.43],[14.94,12.72,.3,.38],[18.99,12.63,.36,.42],[17.83,4.28,.34,.48],[19.32,4.74,.33,.43]])shrub(...p);
+  for(const p of [[19.96,7.63,.3,0],[19.98,10.13,.3,1],[16.16,12.67,.32,0],[18.01,12.72,.29,1],[17.92,4.79,.3,0]])whiteFlowers(...p);
+  for(const p of [[19.89,8.79,.45],[19.95,6.11,.43],[14.62,12.81,.43],[19.59,12.52,.47],[18.04,3.93,.44]])tuft(...p);
+  for(const p of [[19.87,10.79,.24],[17.01,12.82,.22],[19.35,5.08,.26]])rock(...p);
+  // A long timber bench faces the rear lawn; the table leaves a broad approach from the west.
+  box(.57,.085,2.15,18.09,.49,8.95,timber,garden);
+  box(.055,.39,2.15,18.385,.74,8.95,timber,garden);
+  for(const z of [8.12,9.78]){box(.4,.36,.09,18.09,.265,z,edging,garden);box(.57,.055,.07,18.09,.72,z,timber,garden);}
+  box(.48,.055,1.81,18.06,.56,8.95,cushion,garden);
+  box(.75,.065,.68,16.81,.415,8.95,timber,garden);
+  for(const x of [16.54,17.08])for(const z of [8.74,9.16])box(.045,.28,.045,x,.24,z,edging,garden);
+  cylinder(.055,.045,.06,16.61,.482,8.92,paleStone,garden,16);
+  cylinder(.055,.045,.06,16.98,.482,8.96,paleStone,garden,16);
 
-  // Soft cottage planting: violet, white and blush pink instead of clipped topiary.
-  bed([[-9.9,13.65],[-8.86,13.42],[-8.64,14.25],[-8.43,15.7],[-8.53,17.75],[-8.45,18.0],[-8.91,18.7],[-9.92,18.4],[-9.89,16.5]]);
-  bed([[-5.23,16.45],[-4.18,16.48],[-4.14,18.73],[-4.69,18.96],[-5.21,18.31]]);
-  bed([[-5.2,12.62],[-4.18,12.61],[-4.16,14.05],[-4.75,14.18],[-5.2,13.8]]);
-  bed([[-8.8,7.2],[-7.7,6.88],[-6.56,7.26],[-6.29,8.12],[-6.73,9.1],[-8.28,9.25],[-8.94,8.5]]);
-  for(const p of [[-9.36,14.1,.38,.52],[-9.12,16.35,.43,.43],[-9.27,18.0,.42,.53],[-4.69,17.3,.35,.6],[-4.62,13.2,.3,.5],[-7.43,7.57,.48,.53],[-8.23,8.39,.36,.4]]) shrub(...p);
-  for(const p of [[-9.45,15.35,.32,1],[-9.38,17.82,.36,0],[-8.87,18.05,.3,2],[-4.62,18.3,.33,1],[-4.53,13.8,.26,2],[-7.19,8.67,.34,0],[-8.18,7.63,.31,2]]) whiteFlowers(...p);
-  for(const p of [[-9.03,13.88,.46],[-8.8,16.12,.52],[-9.52,17.9,.55],[-4.59,16.72,.43],[-4.44,13.0,.47],[-6.93,7.53,.55]]) tuft(...p);
-  for(const p of [[-9.15,18.35,.29],[-4.61,18.85,.25],[-8.54,8.94,.24]]) rock(...p);
-  // A compact backed bench faces the shaded front lawn, well south of the front door.
-  box(.5,.08,1.85,-5.55,.5,18.05,timber,garden);
-  box(.06,.38,1.85,-5.28,.73,18.05,timber,garden);
-  for(const z of [17.32,18.78]) {box(.38,.37,.09,-5.55,.29,z,edging,garden);box(.54,.06,.065,-5.55,.7,z,timber,garden);}
-
-  // Low contemporary bench facing the water; softened ends leave the middle path clear.
-  box(.56,.09,2.6,-3.5,.49,22.3,timber,garden);
-  for(const z of [21.35,23.25])box(.38,.32,.12,-3.5,.285,z,edging,garden);
-  box(.55,.035,2.6,-3.5,.34,22.3,stone,garden);
-
+  // Flower garden kept clear of sports, entrances and farm circulation.
+  bed([[-9.45,5.1],[-8.9,4.67],[-6.4,4.75],[-5.4,5.5],[-5.2,6.5],[-6.4,6.72],[-8.65,6.5],[-9.42,6.1]]);
+  bed([[-9.1,7.4],[-8,7.05],[-6.1,7.3],[-5.14,8.45],[-5.6,9.55],[-8.8,9.35]]);
+  bed([[-9.7,12.52],[-8.1,12.5],[-6.15,12.85],[-5.18,13.68],[-5.4,14.5],[-7.7,14.51],[-9.6,14.2]]);
+  bed([[-4.25,21.35],[-3.0,21.2],[-2.85,22.5],[-2.92,23.99],[-3.61,24.1],[-4.23,22.9]]);
+  bed([[2.65,21.25],[3.63,21.2],[3.76,22.15],[3.52,22.74],[2.78,22.72],[2.66,22.02]]);
+  bed([[5.7,21.15],[6.01,21.25],[6.01,23.9],[5.65,24.03],[5.61,22.65]]);
+  bed([[-1.17,29.32],[.95,29.18],[2.46,29.57],[2.79,30.6],[1.14,31.48],[-.61,30.79]]);
+  for(const p of [[-8.85,5.42,.36,.55],[-6.01,5.74,.46,.55],[-8.13,8.77,.42,.48],[-5.95,8.55,.35,.47],[-9.01,13.32,.43,.49],[-6.02,13.72,.4,.52],[-3.69,21.86,.42,.65],[-3.42,23.48,.36,.56],[3.19,21.57,.3,.42],[5.85,21.7,.14,.9],[5.85,22.4,.14,.93],[5.84,23.25,.14,.88],[-.57,29.84,.4,.5],[1.89,30.51,.4,.4]])shrub(...p);
+  for(const p of [[-8.39,5.7,.38,1],[-7.05,5.38,.34,2],[-8.67,8.11,.35,0],[-6.58,9.03,.35,1],[-8.09,13.23,.35,2],[-6.92,14.12,.28,0],[-3.65,23.8,.27,1],[3.23,22.26,.22,2],[-.3,29.75,.33,1],[2.2,30.19,.31,0]])whiteFlowers(...p);
+  for(const p of [[-9.01,5.74,.47],[-6.4,6.22,.5],[-7.37,8.83,.54],[-8.74,13.97,.54],[-5.89,13.44,.48],[-3.23,21.63,.45],[3.15,22.53,.37],[1.1,30.82,.59]])tuft(...p);
+  for(const p of [[-8.7,6.12,.26],[-5.78,8.62,.25],[-6.06,14.09,.29],[-3.39,23.87,.23],[.87,30.79,.24]])rock(...p);
+  tree(-7.95,5.66,3.6,1.02);
+  tree(-3.46,22.4,3.85,.82);
+  tree(.71,30.14,4.2,.95);
   // Dense, small instanced leaves give the planting volume without large polygonal balls.
   for(const outline of beds) {
     const xs=outline.map(p=>p[0]),zs=outline.map(p=>p[1]);
@@ -259,25 +334,19 @@ export function createGarden({scene,M,box,cylinder,inSite}) {
     dummy.rotation.set(0,a,0);dummy.scale.set(p.s*.48,p.s*.23,p.s*.7);dummy.updateMatrix();petals.setMatrixAt(i*5+j,dummy.matrix);petals.setColorAt(i*5+j,colour.set(flowerColours[p.tone||0]));
   }});petals.computeBoundingSphere();garden.add(petals);
 
-  for(const [x,z]of [[-8.45,13.2],[-8.42,18.65],[-5.72,16.32],[-6.07,8.8],[-9.82,20.15],[-14.8,22],[-11.15,25.2],[-4.55,21.4],[1.33,24.1],[4.22,23.9],[4.18,27.6],[4.95,21.67]]) {
+  for(const [x,z]of [[14.78,7.31],[18.95,10.91],[19.13,5.82],[-9.35,6.87],[-5.05,9.68],[-6.01,14.68],[-3.95,21.02],[3.65,21.02],[3.71,24.17],[5.68,25.16],[5.63,27.5],[-2.42,27.12],[6.05,20.93]]) {
     if(!safe(x,z,.18)||blocked(x,z,.18))continue;
     box(.09,.42,.09,x,.33,z,edging,garden);box(.16,.03,.16,x,.555,z,edging,garden);box(.075,.04,.075,x,.52,z,glow,garden);
     const light=new THREE.PointLight('#ffdeaa',0,3.4,2);light.position.set(x,.53,z);garden.add(light);lamps.push(light);
   }
   const treeLight=new THREE.SpotLight('#ffe6bd',0,7,Math.PI/5,.9,1.7);
-  treeLight.position.set(-1.6,.2,23.4);treeLight.target.position.set(-.6,3.5,22.7);garden.add(treeLight,treeLight.target);
+  treeLight.position.set(-3.96,.2,23.4);treeLight.target.position.set(-3.46,3.1,22.4);garden.add(treeLight,treeLight.target);
   function setLight(dusk,rain=false) {
     glow.emissiveIntensity=dusk?2.25:rain?.55:.15;
     lamps.forEach(light=>{light.intensity=dusk?2.1:rain?.35:0;});
     treeLight.intensity=dusk?12:0;
   }
-  let elapsed=0;
-  function update(dt) {
-    elapsed+=Math.max(0,Math.min(dt,.1));
-    const t=elapsed;
-    water.material.uniforms.time.value=t*.32;
-    ripples.forEach((mesh,i)=> {const phase=(t*.16+i/3)%1;mesh.scale.setScalar(.45+phase*1.85);mesh.material.opacity=.14*(1-phase);});
-  }
+  function update(dt) { /* Static planting and farm objects keep mobile rendering light. */ }
   function excludesGrass(x,z) {return surfaces.some(outline=>inside(outline,x,z));}
-  return {garden,water,setLight,update,excludesGrass,footprints:gardenFootprints};
+  return {garden,setLight,update,excludesGrass,footprints:gardenFootprints,anchors:gardenAnchors};
 }
