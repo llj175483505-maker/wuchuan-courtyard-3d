@@ -11,11 +11,16 @@ const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
 const dummy=new THREE.Object3D(),colour=new THREE.Color();
 const vec=(x,y,z)=>new THREE.Vector3(x,y,z);
 
-export async function prepareMaterials(M,scene,renderer){
+export async function prepareMaterials(M,scene,renderer,{onProgress=()=>{},beforeEnvironment=()=>{}}={}){
+  const materialSets=['large_grey_tiles','white_plaster_02','wood_floor_deck','leafy_grass'];
+  const totalResources=materialSets.length*3+3+1;
+  let loadedResources=0;
+  const track=promise=>promise.then(resource=>{onProgress(++loadedResources,totalResources);return resource;});
+  onProgress(0,totalResources);
   const loader=new THREE.TextureLoader();
-  async function texture(name,color=false,scale=1){const t=await loader.loadAsync('./assets/'+name);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(scale,scale);t.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);if(color)t.colorSpace=THREE.SRGBColorSpace;return t;}
+  async function texture(name,color=false,scale=1){const t=await track(loader.loadAsync('./assets/'+name));t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(scale,scale);t.anisotropy=Math.min(renderer.capabilities.getMaxAnisotropy(),8);if(color)t.colorSpace=THREE.SRGBColorSpace;return t;}
   const loadSet=async(name,scale)=>{const [map,normalMap,roughnessMap]=await Promise.all([texture(name+'_diff_1k.jpg',true,scale),texture(name+'_nor_gl_1k.jpg',false,scale),texture(name+'_rough_1k.jpg',false,scale)]);return {map,normalMap,roughnessMap};};
-  const [stone,plaster,wood,grass,env]=await Promise.all([loadSet('large_grey_tiles',.65),loadSet('white_plaster_02',.7),loadSet('wood_floor_deck',.5),loadSet('leafy_grass',.42),new HDRLoader().loadAsync('./assets/chinese_garden_1k.hdr')]);
+  const [stone,plaster,wood,grass,env]=await Promise.all([...materialSets.map((name,i)=>loadSet(name,[.65,.7,.5,.42][i])),track(new HDRLoader().loadAsync('./assets/chinese_garden_1k.hdr'))]);
   function assign(material,set,tint,normal=.4){Object.assign(material,set);material.color.set(tint);material.normalScale.set(normal,normal);material.needsUpdate=true;}
   assign(M.wall,plaster,'#f0f0e8',.28);assign(M.trim,plaster,'#a0a59e',.32);assign(M.base,stone,'#747d7c',.55);
   M.wall.map=null;M.wall.color.set('#eeeede');M.wall.normalScale.set(.11,.11);
@@ -50,6 +55,7 @@ export async function prepareMaterials(M,scene,renderer){
   M.facade.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>','#include <map_fragment>\nfloat facadeGrey=dot(diffuseColor.rgb,vec3(.2126,.7152,.0722)); diffuseColor.rgb=mix(vec3(.72,.705,.665),vec3(facadeGrey),.32);');};
   M.facade.customProgramCacheKey=()=> 'warm-grey-brick-v2';
   env.mapping=THREE.EquirectangularReflectionMapping;
+  await beforeEnvironment();
   const pmrem=new THREE.PMREMGenerator(renderer);scene.environment=pmrem.fromEquirectangular(env).texture;pmrem.dispose();
   scene.environmentIntensity=1.1;scene.background=new THREE.Color('#cbdbe0');scene.fog=new THREE.Fog('#cbdbe0',75,170);
   scene.backgroundRotation.y=1.8;scene.environmentRotation.y=1.8;

@@ -1,11 +1,13 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { siteData } from './site-data.js';
-import { prepareMaterials, modernRoof, naturalPlanting, architecturalDetails } from './realism.js';
+import { prepareMaterials, modernRoof, naturalPlanting, architecturalDetails } from './realism.js?v=20261006-loading';
 import { enclosedCourtyard } from './courtyard-style.js';
 import { intimateGarden } from './reference-garden.js';
 import { timberColumn, galleryCanopy, stoneCourtyardFrame } from './architecture-kit.js';
 
+const loading = window.courtyardLoading;
+await loading.stage(1, '正在启动三维引擎', '程序已加载 · 正在准备显示设备');
 const host = document.getElementById('scene');
 const annotations = [];
 const dimensions = new THREE.Group();
@@ -23,11 +25,17 @@ let renderer;
 try {
   renderer = new THREE.WebGLRenderer({antialias:true,alpha:false});
 } catch (error) {
-  document.getElementById('loading').style.display='none';
-  const notice=document.getElementById('error');notice.hidden=false;
-  notice.textContent='当前浏览器无法启动 3D 显示。请使用支持 WebGL 的新版 Chrome 或 Edge，并开启浏览器图形加速后重试。';
+  loading.fail('当前浏览器无法启动 3D 显示。请使用新版 Chrome 或 Edge，并开启浏览器图形加速后重试。');
   throw error;
 }
+renderer.domElement.addEventListener('webglcontextlost',()=>{
+  if(document.documentElement.dataset.sceneReady!=='true'){
+    loading.fail('3D 显示在加载时中断，请关闭其他占用显卡的页面后重新加载。');
+  }else{
+    const notice=document.getElementById('error');notice.hidden=false;
+    notice.textContent='3D 显示暂时中断，请刷新页面重新加载。';
+  }
+});
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -60,10 +68,14 @@ const M = {
   grassDeep:mat('#88a86b'),leaf:mat('#60844f'),leafLight:mat('#779758'),leafDark:mat('#426e4c'),trunk:mat('#826448'),
   white:mat('#eaeae0'),black:mat('#34413c'),water:mat('#83a99d'),clay:mat('#b68c65'),fabric:mat('#d2c4a4')
 };
-try {await prepareMaterials(M,scene,renderer);} catch(error) {
-  document.getElementById('loading').style.display='none';
-  const notice=document.getElementById('error');notice.hidden=false;notice.textContent='材质未能完整加载，请刷新页面重试。';throw error;
+await loading.stage(2, '正在加载庭院材质', '正在读取石材、木纹、绿植与天空');
+try {await prepareMaterials(M,scene,renderer,{
+  onProgress: (done,total) => loading.resources(done,total),
+  beforeEnvironment: () => loading.stage(18, '正在准备环境光影', '材质与环境资源 16 / 16 · 正在生成天空反射')
+});} catch(error) {
+  loading.fail('材质未能完整加载，请检查网络后点击“重新加载”。');throw error;
 }
+await loading.stage(18, '正在生成庭院', '正在构建主屋、围墙与三车停车区');
 const geometries=new Map();
 function box(w,h,d,x,y,z,material,parent=scene){
   const key=`${w},${h},${d}`;let geom=geometries.get(key);if(!geom){geom=new THREE.BoxGeometry(w,h,d);const p=geom.attributes.position,n=geom.attributes.normal,uv=geom.attributes.uv;for(let i=0;i<p.count;i++){if(Math.abs(n.getX(i))>.5)uv.setXY(i,p.getZ(i),p.getY(i));else if(Math.abs(n.getY(i))>.5)uv.setXY(i,p.getX(i),p.getZ(i));else uv.setXY(i,p.getX(i),p.getY(i));}geometries.set(key,geom);}
@@ -324,11 +336,13 @@ for(let i=0;i<3;i++){
 box(2.7,.16,2.1,-17.1,.15,18.3,M.path);box(1.65,.8,.65,-17.1,.61,17.9,M.base);
 box(1.68,.09,.7,-17.1,1.05,17.9,M.path);box(.65,.03,.45,-17.3,1.1,17.88,M.dark);
 label('菜园 / 家务区',[-13,.7,21.5]);
+await loading.stage(19, '正在布置园林', '正在生成屋顶、树木、水庭与廊下细节');
 modernRoof(roofGroup,M,box);
 const landscape=intimateGarden(scene,M,{box,cylinder,inSite});
 naturalPlanting(scene,M,inSite,landscape.excludesGrass);
 const lighting=architecturalDetails({scene,M,roofGroup,upperGroup,groundWalls,box,cylinder});
 const courtyard=enclosedCourtyard({scene,M,box,cylinder,openingWall,upperGroup,landscape});
+await loading.stage(20, '正在准备观景视角', '庭院已生成 · 正在设置光线、尺寸与交互');
 const thirdGroup=upperGroup.clone(true);thirdGroup.position.y=3.3;box(5.6,.2,4.2,courtX,3.5,12.9,M.trim,thirdGroup);scene.add(thirdGroup);
 const pendants=new THREE.Group();scene.add(pendants);
 for(const [x,y,r]of [[-.6,2.7,.45],[.5,2.45,.6]]){const ring=new THREE.Mesh(new THREE.TorusGeometry(r,.018,8,48),lighting.amber);ring.rotation.x=Math.PI/2;ring.position.set(x+courtX,y,12.7);pendants.add(ring);}
@@ -434,6 +448,7 @@ document.getElementById('plan-close').addEventListener('click',()=>document.getE
 document.getElementById('panel-toggle').addEventListener('click',e=>{const panel=document.querySelector('.panel');panel.classList.toggle('open');e.target.setAttribute('aria-expanded',panel.classList.contains('open'));e.target.textContent=panel.classList.contains('open')?'收起场地设置':'场地信息与设置';});
 for(const d of document.querySelectorAll('dialog'))d.addEventListener('click',e=>{if(e.target===d)d.close();});
 function resize(){const w=host.clientWidth,h=host.clientHeight;camera.aspect=w/h;renderer.setSize(w,h);camera.clearViewOffset();if(w>640){const offset=Math.min(150,w*.13);camera.setViewOffset(w,h,-offset,0,w,h);}camera.updateProjectionMatrix();}
+await loading.stage(21, '正在渲染首帧画面', '正在准备阴影与水面反射，首次打开可能需要稍候');
 addEventListener('resize',resize);resize();setView('garden',true);
 const projected=new THREE.Vector3();
 let lastTime=performance.now();
@@ -469,6 +484,8 @@ function tick(t){
   renderer.render(scene,camera);requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
-renderer.domElement.addEventListener('webglcontextlost',()=>{const el=document.getElementById('error');el.hidden=false;el.textContent='3D 显示暂时中断，请刷新页面重新加载。';});
-document.getElementById('loading').style.opacity='0';setTimeout(()=>document.getElementById('loading').remove(),400);
-document.documentElement.dataset.sceneReady='true';
+if(renderer.getContext().isContextLost()){
+  loading.fail('3D 显示在加载时中断，请重新加载场景。');
+  throw new Error('WebGL context lost during initialization');
+}
+await loading.finish();
