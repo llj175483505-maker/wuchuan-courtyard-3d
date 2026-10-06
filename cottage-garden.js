@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createRearGarden, rearGardenPlan } from './rear-garden.js?v=a5-rear-water-garden';
+import { createRearGarden, rearGardenPlan } from './rear-garden.js?v=a6-pond-pavilion';
 
 // A scheme: a domestic west-facing cottage garden within the surveyed boundary.
 // Ground surfaces are level at 0.085 m; entrance and parking routes stay unobstructed.

@@ -22,8 +22,9 @@ export const rearGardenPlan = {
   connection:rect([12.75,15.3,8.7,10.1]),
   bridge:{x0:15.6,x1:21.6,z:9.4,width:1.35,ground:.085,rise:.52},
   bridgeLandings:[rect([14.6,15.7,8.725,10.075]),rect([21.5,22.7,8.725,10.075])],
-  sittingTerrace:rect([16.4,20.5,14.55,17]),
-  trees:[[15.1,3,4.5,1.15],[23.25,4.25,4.7,1.2],[20.9,16.4,4.0,1.02],[14.1,16.3,3.8,.96]],
+  sittingTerrace:rect([16.1,20.5,14.55,18.05]),
+  pavilion:{center:[18.3,16.4],posts:[3.6,2.6],roof:[4.7,3.6],eaves:2.75,ridge:3.38},
+  trees:[[15.1,3,4.5,1.15],[23.25,4.25,4.7,1.2],[14.1,16.3,3.8,.96]],
   rockery:[18.45,5.95],
 };
 
@@ -140,7 +141,7 @@ export function createRearGarden({parent,M,box,cylinder,inSite}) {
     const bearer=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),64,.06,8,false),dark);bridge.add(bearer);
   }
 
-  // Low sculptural faux-stone grouping, rather than a tall mountain or pavilion.
+  // Low sculptural faux-stone grouping on the northern pond bank.
   const rockery=new THREE.Group();rockery.name='low-sculptural-artificial-stone-group';group.add(rockery);
   function featureStone(x,y,z,sx,sy,sz,angle=0,parent=rockery) {
     let g=new THREE.IcosahedronGeometry(1,4);
@@ -253,15 +254,51 @@ export function createRearGarden({parent,M,box,cylinder,inSite}) {
   const petals=new THREE.InstancedMesh(new THREE.SphereGeometry(1,5,3),new THREE.MeshStandardMaterial({color:'#ffffff',roughness:.9}),blooms.length*5),flowerColours=['#f3f0d9','#ab91ca','#d89bae'];
   blooms.forEach((p,i)=>{for(let j=0;j<5;j++){const a=j*TAU/5;dummy.position.set(p.x+Math.cos(a)*p.s*.6,p.y,p.z+Math.sin(a)*p.s*.6);dummy.rotation.set(0,a,0);dummy.scale.set(p.s*.64,p.s*.25,p.s*.46);dummy.updateMatrix();petals.setMatrixAt(i*5+j,dummy.matrix);petals.setColorAt(i*5+j,color.set(flowerColours[p.tone]));}});petals.computeBoundingSphere();group.add(petals);
 
-  // Quiet contemporary seating looks north over the garden; circulation remains open.
-  const bench=new THREE.Group();bench.name='rear-garden-timber-seating';group.add(bench);
-  for(const x of [17.32,19.43]) {
-    for(let i=0;i<6;i++)box(1.8,.058,.08,x,.48,16.26+i*.085,wood,bench);
-    for(const xx of [x-.69,x+.69])box(.08,.37,.48,xx,.285,16.48,dark,bench);
-    for(let i=0;i<4;i++)box(1.8,.082,.045,x,.65+i*.085,16.76,wood,bench);
-    for(const xx of [x-.74,x+.74])box(.04,.63,.045,xx,.625,16.8,dark,bench);
+  // A low, straight-eaved tea pavilion replaces the two exposed benches.
+  // Its flush floor opens onto the existing level loop; the pond-side passage stays clear.
+  const pavilion=new THREE.Group();pavilion.name='waterside-tea-pavilion';group.add(pavilion);
+  const T=rearGardenPlan.pavilion,[tx,tz]=T.center,[pw,pd]=T.posts,[rw,rd]=T.roof;
+  const timber=M.woodLight.clone();timber.color.set('#b09a79');timber.roughness=.65;
+  const roofMaterial=M.roof.clone();roofMaterial.color.set('#505956');roofMaterial.roughness=.88;roofMaterial.side=THREE.DoubleSide;
+  const fabric=M.fabric.clone();fabric.color.set('#e2decd');fabric.roughness=.96;
+  for(const sx of [-1,1])for(const sz of [-1,1]) {
+    const x=tx+sx*pw/2,z=tz+sz*pd/2;
+    box(.24,.12,.24,x,.145,z,coping,pavilion);
+    box(.17,T.eaves-.18,.17,x,(T.eaves+.18)/2,z,timber,pavilion);
   }
-  cylinder(.30,.30,.055,18.38,.45,15.79,wood,bench,24);cylinder(.08,.15,.35,18.38,.255,15.79,dark,bench,12);
+  for(const z of [tz-pd/2,tz+pd/2])box(pw+.22,.19,.17,tx,T.eaves-.12,z,timber,pavilion);
+  for(const x of [tx-pw/2,tx+pw/2])box(.17,.19,pd+.22,x,T.eaves-.12,tz,timber,pavilion);
+  box(rw-.08,.07,rd-.08,tx,T.eaves-.055,tz,timber,pavilion);
+  // Fine timber ceiling slats and a slim dark fascia keep the pavilion contemporary.
+  for(let x=tx-rw/2+.13;x<tx+rw/2-.08;x+=.16)box(.018,.023,rd-.18,x,T.eaves-.1,tz,dark,pavilion);
+  for(const z of [tz-rd/2,tz+rd/2])box(rw,.11,.045,tx,T.eaves,z,dark,pavilion);
+  for(const x of [tx-rw/2,tx+rw/2])box(.045,.11,rd,x,T.eaves,tz,dark,pavilion);
+  const a=[tx-rw/2,T.eaves,tz-rd/2],b=[tx+rw/2,T.eaves,tz-rd/2],c=[tx+rw/2,T.eaves,tz+rd/2],d=[tx-rw/2,T.eaves,tz+rd/2];
+  const r0=[tx-.6,T.ridge,tz],r1=[tx+.6,T.ridge,tz];
+  const positions=[],roofUV=[];
+  for(const tri of [[a,r0,b],[b,r0,r1],[b,r1,c],[c,r1,d],[d,r1,r0],[d,r0,a]])for(const p of tri){positions.push(...p);roofUV.push(p[0],p[2]);}
+  const roofGeometry=new THREE.BufferGeometry();roofGeometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));roofGeometry.setAttribute('uv',new THREE.Float32BufferAttribute(roofUV,2));roofGeometry.computeVertexNormals();
+  const roof=new THREE.Mesh(roofGeometry,roofMaterial);roof.name='low-hipped-grey-pavilion-roof';roof.castShadow=roof.receiveShadow=true;pavilion.add(roof);
+  for(const [p,q]of [[a,r0],[d,r0],[b,r1],[c,r1],[r0,r1]])beamBetween(new THREE.Vector3(...p).add(new THREE.Vector3(0,.015,0)),new THREE.Vector3(...q).add(new THREE.Vector3(0,.015,0)),.027,dark,pavilion);
+  const roofSeams=[];
+  for(const sz of [-1,1])for(let x=tx-rw/2+.16;x<tx+rw/2-.12;x+=.19){
+    const endX=Math.max(tx-.6,Math.min(tx+.6,x));
+    roofSeams.push(new THREE.Vector3(x,T.eaves+.018,tz+sz*rd/2),new THREE.Vector3(endX,T.ridge+.018,tz));
+  }
+  pavilion.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(roofSeams),new THREE.LineBasicMaterial({color:'#778079',transparent:true,opacity:.42})));
+  cylinder(.53,.53,.065,tx,.795,tz,timber,pavilion,40);cylinder(.13,.25,.64,tx,.4425,tz,dark,pavilion,20);
+  function chair(x,z,angle) {
+    const seat=new THREE.Group();seat.position.set(x,0,z);seat.rotation.y=angle;pavilion.add(seat);
+    box(.5,.055,.48,0,.47,0,timber,seat);box(.45,.055,.42,0,.525,-.005,fabric,seat);
+    for(const xx of [-.19,.19])for(const zz of [-.18,.18])box(.045,.365,.045,xx,.2775,zz,dark,seat);
+    for(const xx of [-.21,.21])box(.04,.39,.045,xx,.69,.21,timber,seat);
+    for(const y of [.7,.81])box(.46,.07,.035,0,y,.21,timber,seat);
+  }
+  chair(tx,tz+.94,0);chair(tx,tz-.94,Math.PI);chair(tx+1.08,tz,Math.PI/2);chair(tx-1.08,tz,-Math.PI/2);
+  cylinder(.15,.15,.022,tx,.839,tz,timber,pavilion,24);
+  for(const dx of [-.1,.1])cylinder(.042,.032,.065,tx+dx,.882,tz,dark,pavilion,16);
+  for(const x of [tx-.85,tx+.85]){box(.56,.025,.045,x,T.eaves-.12,tz,glow,pavilion);}
+  const pavilionLight=new THREE.PointLight('#ffdcaa',0,5.2,2);pavilionLight.position.set(tx,2.39,tz);pavilion.add(pavilionLight);
   for(const [x,z]of [[13.55,8.36],[13.55,10.43],[16.75,3.16],[22.7,5.49],[23.44,10.73],[20.76,14.14],[15.6,14.49]]) {
     if(!safe(x,z,.18)||onRoute(x,z,.2))continue;
     box(.085,.43,.085,x,.33,z,dark,group);box(.16,.035,.16,x,.565,z,dark,group);box(.07,.038,.07,x,.527,z,glow,group);
@@ -269,7 +306,7 @@ export function createRearGarden({parent,M,box,cylinder,inSite}) {
   }
   const rockLight=new THREE.SpotLight('#ffdcab',0,5,Math.PI/4,.75,1.5);rockLight.position.set(19.6,.3,5.25);rockLight.target.position.set(18.4,.9,6.2);group.add(rockLight,rockLight.target);
   function setLight(dusk,rain=false) {
-    glow.emissiveIntensity=dusk?2.2:rain?.45:.15;lights.forEach(l=>{l.intensity=dusk?1.5:0;});rockLight.intensity=dusk?6:0;
+    glow.emissiveIntensity=dusk?2.2:rain?.45:.15;lights.forEach(l=>{l.intensity=dusk?1.5:0;});rockLight.intensity=dusk?6:0;pavilionLight.intensity=dusk?12:rain?1.5:0;
     water.material.uniforms.sunColor.value.set(dusk?'#788899':rain?'#c2ccce':'#fff5d9');
     water.material.uniforms.waterColor.value.set(dusk?'#102e2c':'#173c37');
   }

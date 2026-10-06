@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { siteData } from './site-data.js?v=a5-rear-water-garden';
-import { prepareMaterials } from './materials.js?v=a5-rear-water-garden';
-import { mobileLayout, sceneInsets, setupMobileUI } from './mobile-ui.js?v=a5-rear-water-garden';
+import { siteData } from './site-data.js?v=a6-pond-pavilion';
+import { prepareMaterials } from './materials.js?v=a6-pond-pavilion';
+import { mobileLayout, sceneInsets, setupMobileUI } from './mobile-ui.js?v=a6-pond-pavilion';
 
-import { createCottage } from './cottage.js?v=a5-rear-water-garden';
-import { createGarden } from './cottage-garden.js?v=a5-rear-water-garden';
-import { createRecreation } from './recreation.js?v=a5-rear-water-garden';
+import { createCottage } from './cottage.js?v=a6-pond-pavilion';
+import { createGarden } from './cottage-garden.js?v=a6-pond-pavilion';
+import { createRecreation } from './recreation.js?v=a6-pond-pavilion';
 
 const loading = window.courtyardLoading;
 await loading.stage(1, '正在启动三维引擎', '程序已加载 · 正在准备显示设备');
@@ -244,10 +244,11 @@ line([[front[0],.22,front[1]],[west[0],.22,west[1]]],'#9f7743',dimensions);
 line([[west[0]+.35,.22,west[1]-.25],[west[0],.22,west[1]],[west[0]+.35,.22,west[1]+.25]],'#9f7743',dimensions);
 label('正门 / 露台朝西',[west[0],.4,west[1]-1.8],'dimension','design');
 label('西向入户花园',[-7,.4,7.5]);
-await loading.stage(19,'正在布置休闲与田园空间','正在生成池塘、拱桥、仿真景石与分层花境');
+await loading.stage(19,'正在布置休闲与田园空间','正在生成池塘、拱桥、仿真景石与临池小亭');
 const landscape=createGarden({scene,M,box,cylinder,inSite});
 const recreation=createRecreation({scene,M,box,cylinder,inSite});
 label('后院园林 · 池塘与拱桥',[18.7,.85,9.2]);
+label('临池小亭 · 四人茶席',[18.3,3.65,16.4]);
 label('投篮练习区 · 净活动面8×6m',[-10.2,.55,20]);
 label('菜园 · 高畦种植',[.9,.7,26.5]);
 label('小鸡舍 · 独立网围',[7.9,2.25,22.2]);
@@ -318,7 +319,7 @@ if(siteData.existingBuilding){
   const pts=siteData.existingBuilding.corners.map(([x,z])=>[x-27.5,.3,z]);line([...pts,pts[0]],'#b17f40',existing,true);
   const item=label('原建筑 · 图注120㎡',[siteData.existingBuilding.center[0]-27.5,.45,siteData.existingBuilding.center[1]],'existing');item.enabled=false;
 }
-document.getElementById('dimension-source').innerHTML=`<p><b>图纸基准</b><br>地界沿用原 PDF 矢量轮廓，以北侧东西总投影55m定标；模型面积约1130.01㎡，原图标注1130㎡。东南斜边图注20.37m，等比矢量约20.69m，此处保留原图轮廓。</p><p><b>A方案 · 朝西花园住宅</b><br>原左右厢房移除，改为一栋参考图风格的住宅。正门、门廊及主要露台统一朝西；外包络面宽16m、进深12.5m，占地200㎡，含内凹门廊。默认两层：首层约200㎡，二层实体约153㎡，室外露台47㎡，两层楼层面积合计约353㎡。三层版本增设约153㎡实体层，合计约506㎡；一层版本约200㎡。面积为模型几何粗算，门廊、露台及正式建面计算待后续设计复核。层高3.3m，浅色抹灰、木色门窗、灰瓦交叉坡顶、黑色栏杆、入口拱券为外观概念。</p><p><b>通行与园林</b><br>保留北侧4m车门及1.2m人行门、西北侧三个2.8×5.5m并列车位、北侧6m深倒车通道。西侧入户花园与连续步道连接主门廊，南侧为花园茶席、菜园和鸡舍；门前用1.2m长缓坡处理约9.5cm高差。围墙含压顶总高2m。车型暂按4.75×1.85m示意，具体转弯轨迹未校核。</p><p><b>新增休闲与田园</b><br>后院改为约26㎡观赏池塘、木质拱桥、仿真景石、分层花境与树下休息区。拱桥长6m、宽1.35m、拱高约0.52m，池边另设1.4m宽连续平路，休憩及通行不必经过拱桥。西南投篮区净活动面8×6m，外围各1.5m缓冲，整体11×9m，属于家用投篮练习区，不是标准篮球场。旧西南水景和茶台移除；新茶席转到南侧，菜园采用窄高畦及连续小路，东南设置小型鸡舍和网围活动区。排水、鸡舍容量与清洁设施须在后续设计确认；植物与围挡仅示意功能分区。</p><p><b>尺寸说明</b><br>地块边界来自原图；道路宽5.5m、建筑、树木、景观、室内分区及高差为拟建设计。主屋位置和形态因朝向重新安排；屋檐地界余量只是几何检查，不代表审批退界。原建筑按拆除后重新布局，轮廓可单独显示。模型为概念交流使用，非施工图。</p>`;
+document.getElementById('dimension-source').innerHTML=`<p><b>图纸基准</b><br>地界沿用原 PDF 矢量轮廓，以北侧东西总投影55m定标；模型面积约1130.01㎡，原图标注1130㎡。东南斜边图注20.37m，等比矢量约20.69m，此处保留原图轮廓。</p><p><b>A方案 · 朝西花园住宅</b><br>原左右厢房移除，改为一栋参考图风格的住宅。正门、门廊及主要露台统一朝西；外包络面宽16m、进深12.5m，占地200㎡，含内凹门廊。默认两层：首层约200㎡，二层实体约153㎡，室外露台47㎡，两层楼层面积合计约353㎡。三层版本增设约153㎡实体层，合计约506㎡；一层版本约200㎡。面积为模型几何粗算，门廊、露台及正式建面计算待后续设计复核。层高3.3m，浅色抹灰、木色门窗、灰瓦交叉坡顶、黑色栏杆、入口拱券为外观概念。</p><p><b>通行与园林</b><br>保留北侧4m车门及1.2m人行门、西北侧三个2.8×5.5m并列车位、北侧6m深倒车通道。西侧入户花园与连续步道连接主门廊，南侧为花园茶席、菜园和鸡舍；门前用1.2m长缓坡处理约9.5cm高差。围墙含压顶总高2m。车型暂按4.75×1.85m示意，具体转弯轨迹未校核。</p><p><b>新增休闲与田园</b><br>后院改为约26㎡观赏池塘、木质拱桥、仿真景石、分层花境与临池小亭。小亭四柱间距3.6×2.6m，灰色低坡顶、木色立柱，设四人茶席，地面与环池步道平接。拱桥长6m、宽1.35m、拱高约0.52m，池边另设1.4m宽连续平路，休憩及通行不必经过拱桥。西南投篮区净活动面8×6m，外围各1.5m缓冲，整体11×9m，属于家用投篮练习区，不是标准篮球场。旧西南水景和茶台移除；新茶席转到南侧，菜园采用窄高畦及连续小路，东南设置小型鸡舍和网围活动区。排水、鸡舍容量与清洁设施须在后续设计确认；植物与围挡仅示意功能分区。</p><p><b>尺寸说明</b><br>地块边界来自原图；道路宽5.5m、建筑、树木、景观、室内分区及高差为拟建设计。主屋位置和形态因朝向重新安排；屋檐地界余量只是几何检查，不代表审批退界。原建筑按拆除后重新布局，轮廓可单独显示。模型为概念交流使用，非施工图。</p>`;
 
 let cameraTween=null,gateOpen=false,gateProgress=0,touring=false,tourTime=0;
 let activeView='rear',layoutScale=1,hasView=false;
@@ -330,14 +331,15 @@ const presets={
  gate:{pos:[-30,10,-20],target:[-12,2,9],caption:'北侧入口 · 独立人行门连接西向住宅'},
  garden:{pos:[-31,18,32],target:[1,3,12],caption:'朝西独栋 · 灰瓦坡顶 · 木色门窗 · 二层露台'},
  detail:{pos:[-22,5.6,12.5],target:[-1.2,4.2,11.3],caption:'西立面 · 拱券门廊 · 木色窗框与黑色露台栏杆'},
- rear:{pos:[33,18,25],target:[18.7,.8,9.2],caption:'后院园林 · 池塘 · 拱桥 · 仿真景石与花境'},
+ rear:{pos:[33,18,25],target:[18.7,.8,9.2],caption:'后院园林 · 池塘 · 拱桥 · 假石 · 临池小亭'},
+ pavilion:{pos:[19.7,4.5,8.5],target:[18.3,1.15,16.4],caption:'临池小亭 · 灰顶木柱 · 四人茶席'},
  pond:{pos:[25.5,5.6,15.6],target:[18.6,.85,8.5],caption:'池桥近景 · 仿真景石 · 花木与水面倒影'},
  court:{pos:[-26,19,33],target:[-10.2,.5,20],caption:'家用投篮区 · 活动面8×6m · 周边缓冲1.5m'},
  farm:{pos:[18,18,37],target:[3,1,25],caption:'高畦菜园 · 独立鸡舍 · 连续清洁通道'},
  tea:{pos:[-9,8,31],target:[0,1,22.7],caption:'花园茶席 · 花境环绕 · 连通菜园的平整步道'},
  top:{pos:[0,86,13.1],target:[0,0,13],caption:'北在上 · 主屋200㎡ · 投篮活动面48㎡'}
 };
-const mobileFrames={overview:[70,48],parking:[17,16],gate:[20,18],garden:[34,25],detail:[19,13],rear:[22,20],pond:[12,10],court:[17,16],farm:[18,14],tea:[12,10],top:[60,42]};
+const mobileFrames={overview:[70,48],parking:[17,16],gate:[20,18],garden:[34,25],detail:[19,13],rear:[22,20],pond:[12,10],pavilion:[7.5,7],court:[17,16],farm:[18,14],tea:[12,10],top:[60,42]};
 function framingScale(name){
   if(!mobileLayout.matches)return 1;
   const cfg=presets[name],distance=v3(...cfg.pos).distanceTo(v3(...cfg.target));

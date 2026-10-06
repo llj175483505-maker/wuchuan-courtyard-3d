@@ -62,7 +62,7 @@
 
   window.courtyardLoading = loading;
   scene.setAttribute('aria-busy', 'true');
-  import('./main.js?v=a5-rear-water-garden').catch(error => {
+  import('./main.js?v=a6-pond-pavilion').catch(error => {
     console.error('Courtyard initialization failed:', error);
     loading.fail();
   });
