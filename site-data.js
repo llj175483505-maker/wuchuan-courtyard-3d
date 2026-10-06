@@ -7,5 +7,5 @@ export const siteData = {
   frontageProjection: 55,
   vectorArea: 1130.01,
   existingBuilding: {corners:[[34.72995,1.28242],[34.72995,13.15132],[23.72472,13.15132],[23.72472,1.28242]],center:[29.227335,7.21687]},
-  design: {houseWidth:20,houseDepth:10,houseCenter:[28.7,10],courtyardCenterX:-1.25,floorHeight:3.3,roofRise:1.1,wallHeight:2,wallCapHeight:.12,gatePierHeight:2.25,gateLeafTop:1.95,gateClearWidth:4,pedestrianGateClearWidth:1.2,roadWidth:5.5}
+  design: {houseWidth:20,houseDepth:10,houseCenter:[26.25,10],courtyardCenterX:-1.25,floorHeight:3.3,roofRise:1.1,wallHeight:2,wallCapHeight:.12,gatePierHeight:2.25,gateLeafTop:1.95,gateClearWidth:4,pedestrianGateClearWidth:1.2,roadWidth:5.5}
 };

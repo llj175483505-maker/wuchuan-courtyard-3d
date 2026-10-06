@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Water } from 'three/addons/objects/Water.js';
-import { leafGeometry } from './realism.js';
+import { leafGeometry } from './realism.js?v=20261006-axis';
 
 // Metre-based proposal: open middle, an eastern water garden and western tea terrace.
 export function intimateGarden(scene,M,{box,cylinder,inSite}){
@@ -77,8 +77,8 @@ export function intimateGarden(scene,M,{box,cylinder,inSite}){
   for(const p of [[12.95,15.1,.65],[13.1,16.6,.9],[16,17.2,.75],[18.8,14,.8],[17.1,10.1,.9]])tuft(...p);
   for(const p of [[13.25,10.1,.3],[18.15,15.6,.45],[15.1,17.3,.38]])whiteFlowers(...p);
   for(const p of [[16.9,10.7,.78,.7],[17.65,11.05,.46,.55],[17.1,11.5,.38,.45],[13.55,16.1,.56,.45],[15.3,17.05,.4,.52]])rock(...p);
-  surface([[11.4,3.2],[12.6,3.2],[12.6,16.8],[12.411,17.237],[9.2,20.437],[9.2,23.7],[8.55,24.35],[8,24.35],[8,19.74],[11.4,16.54]],.11,M.path);
-  box(2.25,.04,1.2,13.3,.11,7.8,M.path,garden);
+  surface([[9.05,3.2],[10.25,3.2],[10.25,16.8],[10.1,17.237],[9.2,20.437],[9.2,23.7],[8.55,24.35],[8,24.35],[8,19.74],[9.05,16.54]],.11,M.path);
+  box(5.15,.04,1.2,11.875,.11,7.8,M.path,garden);
   plantingBed([[4.55,24.7],[5.6,24.55],[7.25,24.55],[7.65,25.05],[7.2,25.65],[5.65,25.55],[4.6,25.25]]);
   for(const p of [[5.2,24.95,.3,.4],[7.25,25.1,.3,.55],[6.1,25.4,.35,.36]])shrub(...p);
   tuft(4.8,25.1,.6);tuft(7.2,25.6,.65);whiteFlowers(5.7,25.1,.3);rock(6.8,25.6,.38);
@@ -92,7 +92,7 @@ export function intimateGarden(scene,M,{box,cylinder,inSite}){
     for(let y=.5;y<h;y+=.32)cylinder(.035,.035,.018,x,y,z,M.leafDark,garden,7);
     for(let j=0;j<24;j++){const a=rand()*6.28,r=rand()*.55;leaves.push({x:x+Math.cos(a)*r,y:h*.55+rand()*h*.45,z:z+Math.sin(a)*r,s:.3+rand()*.22,a,tint:.24});}
   }
-  for(const p of [[20,4.4],[21.6,8],[20.9,16.9],[18.9,18.5],[-22.4,5.7],[-15.6,24.4],[3,28.9]]){
+  for(const p of [[20,4.4],[21.6,8],[20.9,16.9],[18.9,18.5],[-15.6,24.4],[3,28.9]]){
     if(inSite(...p)){shrub(p[0],p[1],.55,.48);tuft(p[0]-.65,p[1]+.1,.7);}
   }
   for(const p of [[19.8,5.7,.8],[19.8,17.8,.65],[-17.7,20.3,.5]])rock(...p);

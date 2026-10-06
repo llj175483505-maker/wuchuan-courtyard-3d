@@ -3,7 +3,7 @@ import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import { Water } from 'three/addons/objects/Water.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { repeatedBeams } from './architecture-kit.js';
-import { siteData } from './site-data.js';
+import { siteData } from './site-data.js?v=20261006-axis';
 const roofCX=siteData.design.houseCenter[0]-27.5,roofHalf=siteData.design.houseWidth/2+.55;
 
 let seed=88042;
@@ -143,7 +143,7 @@ export function naturalPlanting(scene,M,inSite,excludesGrass=()=>false){
       leafTransforms.push({pos,rot:[rand()*Math.PI,rand()*Math.PI*2,rand()*.9],scale:(.55+rand()*.4)*s,tint:.7+rand()*.7});
     }
   }
-  for(const p of [[6.8,25.1,.72],[-15,25.5,.85],[20,5,1],[20.4,15.5,.9],[17.3,6.5,.8],[-23.5,7,.8],[-18.2,20.15,.7]])if(inSite(p[0],p[1]))tree(...p);
+  for(const p of [[6.8,25.1,.72],[-15,25.5,.85],[20,5,1],[20.4,15.5,.9],[17.3,6.5,.8],[-18.2,20.15,.7]])if(inSite(p[0],p[1]))tree(...p);
   // Shrub masses use the same fine leaf geometry with lower, asymmetric crowns.
   const shrubs=[[6.5,25.5],[20,17.8],[20.8,10],[18,6],[-16,24],[-24.5,5]];
   for(const [x,z]of shrubs)for(let j=0;j<420;j++){
@@ -161,7 +161,7 @@ export function naturalPlanting(scene,M,inSite,excludesGrass=()=>false){
   const points=[];
   for(let i=0;i<30000;i++){
     const x=-24+rand()*48,z=3.4+rand()*29;
-    const house=x>-10.8&&x<12.8&&z<23.4&&z>3,park=(x<-10.15&&x>-21.6&&z<17.15&&z>4.8)||(x>-20.4&&x<-15.6&&z<5.4),veg=(x<-10.5&&x>-16&&z<22.3&&z>18)||(x>-18.6&&x<-15.6&&z>17.1&&z<19.5);
+    const house=(x>roofCX-roofHalf-.12&&x<roofCX+roofHalf+.12&&z>4.3&&z<15.8)||(x>-10.8&&x<8.2&&z>=15.8&&z<23.4),park=(x>-22.3&&x<-12.2&&z>3&&z<9.4)||(x>-20.9&&x<-12.2&&z>=9.2&&z<14.85)||(x>-20.4&&x<-15.6&&z<3.4),veg=(x<-10.5&&x>-16&&z<22.3&&z>18)||(x>-18.6&&x<-15.6&&z>17.1&&z<19.5);
     if(inSite(x,z)&&!house&&!park&&!veg&&!excludesGrass(x,z))points.push([x,z]);
   }
   const blades=new THREE.InstancedMesh(grassGeom,grassMat,points.length);
@@ -222,6 +222,7 @@ export function modernRoof(roofGroup,M,box){
 
 export function architecturalDetails({scene,M,roofGroup,upperGroup,groundWalls,box,cylinder}){
   const lamps=[],amber=M.warmGlow,cx=siteData.design.courtyardCenterX;
+  const left=roofCX-siteData.design.houseWidth/2,right=roofCX+siteData.design.houseWidth/2;
   for(const [x,z]of [[-4.1,15.08],[1.6,15.08],[-18,2.4]]){
     box(.16,.46,.10,x,2.06,z,M.timber);box(.105,.32,.105,x,2.06,z+.008,amber);
     for(const xx of [x-.064,x+.064])box(.016,.36,.018,xx,2.06,z+.071,M.bronze);
@@ -230,20 +231,21 @@ export function architecturalDetails({scene,M,roofGroup,upperGroup,groundWalls,b
   for(const [x,z]of [[-4.55,16.25],[cx,15.9],[2.05,16.25],[-5.1,18],[2.6,18],[-5.1,21.5],[2.6,21.5]]){
     const light=new THREE.PointLight('#ffdcaa',0,5.5,2);light.position.set(x,2.8,z);scene.add(light);lamps.push(light);
   }
-  for(const [x,z]of [[cx,12],[4.65,12.5],[-6.5,7.4],[9.2,12.8]]){const l=new THREE.PointLight('#ffdfa8',0,7,2);l.position.set(x,2.3,z);scene.add(l);lamps.push(l);}
-  for(const x of [-8.67,cx-2.52,cx+2.52,11.07]){
+  for(const [x,z]of [[cx,12],[3.6,12.5],[-6.5,7.4],[7.2,12.8]]){const l=new THREE.PointLight('#ffdfa8',0,7,2);l.position.set(x,2.3,z);scene.add(l);lamps.push(l);}
+  for(const x of [left+.13,cx-2.52,cx+2.52,right-.13]){
     box(.13,3.04,.10,x,1.92,15.07,M.timber,groundWalls);
     box(.13,3.12,.10,x,5.18,15.07,M.timber,upperGroup);
   }
-  for(const [x,w]of [[-6.285,5.03],[6.235,9.93]]){
+  for(const [a,b]of [[left,cx-2.52],[cx+2.52,right]]){
+    const x=(a+b)/2,w=b-a;
     box(w,.16,.12,x,3.535,15.07,M.timber,upperGroup);
     box(w,.025,.13,x,3.615,15.07,M.bronze,upperGroup);
   }
   box(20.05,.14,.11,roofCX,3.535,4.97,M.timber,upperGroup);
-  for(const x of [-8.83,11.23])box(.11,.14,10,x,3.535,10,M.timber,upperGroup);
+  for(const x of [left-.03,right+.03])box(.11,.14,10,x,3.535,10,M.timber,upperGroup);
   // Stone skirts stop at hall glazing and the passages into the side wings.
-  for(const [a,b]of [[-8.8,-8.1],[-6.7,-3.77],[1.27,4.8],[6.2,11.2]])box(b-a,.28,.075,(a+b)/2,.46,15.025,M.cutStone,groundWalls);
-  for(const [a,b]of [[-8.8,-.85],[.85,11.2]])box(b-a,.28,.075,(a+b)/2,.46,4.975,M.cutStone,groundWalls);
-  for(const x of [-8.825,11.225])box(.075,.28,10,x,.46,10,M.cutStone,groundWalls);
+  for(const [a,b]of [[left,cx-7.4],[cx-6.1,cx-2.52],[cx+2.52,cx+6.1],[cx+7.4,right]])box(b-a,.28,.075,(a+b)/2,.46,15.025,M.cutStone,groundWalls);
+  for(const [a,b]of [[left,cx-.85],[cx+.85,right]])box(b-a,.28,.075,(a+b)/2,.46,4.975,M.cutStone,groundWalls);
+  for(const x of [left-.025,right+.025])box(.075,.28,10,x,.46,10,M.cutStone,groundWalls);
   return {lamps,amber};
 }
